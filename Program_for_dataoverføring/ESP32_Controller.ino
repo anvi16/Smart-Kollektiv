@@ -14,8 +14,8 @@ Description:
 
 
 // Wifi: SSID, Password
-const char* WIFI_SSID = "Vik";//"Get-2G-61B740";
-const char* WIFI_PASSWORD = "Y897R123";//"SGBZR7hcyYpA";
+const char* WIFI_SSID = "Vik";
+const char* WIFI_PASSWORD = "Y897R123";
 
 // MQTT: ID, server IP, port, topics
 const char* MQTT_CLIENT_ID = "user1";

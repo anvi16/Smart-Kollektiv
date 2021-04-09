@@ -8,7 +8,6 @@ Description:
 *************************************************/
 
 
-#include "MQTT_Recive.h"
 #include "MQTT.h"
 
 
@@ -21,7 +20,10 @@ const char* WIFI_PASSWORD = "Y897R123";
 const char* MQTT_CLIENT_ID = "user1";
 const char* MQTT_SERVER_IP = "broker.hivemq.com"; //"192.168.0.120";
 const uint16_t  MQTT_SERVER_PORT = 1883;
+// Commen topic for system
+const char* MQTT_TOPIC = "My_home/mqtt";
 
+// Exstra Topics
 const char* MQTT_SUB_TOPIC = "My_home/sub";
 const char* MQTT_PUB_TOPIC = "My_home/pub";
 
@@ -30,20 +32,13 @@ const char* MQTT_PUB_TOPIC = "My_home/pub";
 
 // Initializing structs
 Mqtt_message mqtt_message = {	
-								Hub,						// Resiver
+								"Hub",						// Resiver
 								NaN,						// Room
 								None,						// Header
 								{ "temp", 10, 
 								  "heat", 20 },				// Data_int
 								{ "hei" , "verden" }		// Data_String
 							};
-
-User user = {	
-				1,			// ID
-				dormroom_1, // Room
-				"10W",		// Energi comsumption
-				0			// Guests
-			};
 
 
 
@@ -53,7 +48,7 @@ void setup() {
 	Serial.begin(115200);
 
 	// Set up MQTT for communicatision
-	Mqtt_setup(WIFI_SSID, WIFI_PASSWORD, MQTT_CLIENT_ID, MQTT_SERVER_IP, MQTT_SERVER_PORT);
+	Mqtt_setup(WIFI_SSID, WIFI_PASSWORD, MQTT_CLIENT_ID, MQTT_SERVER_IP, MQTT_SERVER_PORT, MQTT_TOPIC);
 	delay(5);
 	// Set up Topic's
 		// Subscribe to desirable topics
@@ -77,4 +72,23 @@ void loop() {
 	Mqtt_loop();
 	Mqtt_recive();
 	
+}
+
+
+void Mqtt_recive() {
+	// Handling incoming mqtt messages
+	if (String("My_home/sub").equals(Mqtt_topic)) {
+		Serial.println("OK");
+	}
+	if (String("My_home/sub").equals(Mqtt_topic)) {
+		Serial.println(Mqtt_payload);
+		Serial.println(int(Mqtt_Json_payload["data_int"]["Temp"]));
+		Serial.println((const char*)Mqtt_Json_payload["data_String"]["Hei"]);
+
+		int temp = Mqtt_Json_payload["data_int"]["Temp"];
+
+	}
+
+	// Clear message buffers 
+	Mqtt_clear_msg();
 }

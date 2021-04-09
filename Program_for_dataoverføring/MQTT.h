@@ -28,7 +28,9 @@ const char* _WIFI_SSID;
 const char* _WIFI_PASSWORD;
 const char* _MQTT_CLIENT_ID;
 const char* _MQTT_SERVER_IP;
-uint16_t _MQTT_SERVER_PORT;
+uint16_t    _MQTT_SERVER_PORT;
+const char* _MQTT_TOPIC;
+
 
 
 WiFiClient wifiClient;
@@ -42,7 +44,7 @@ void Mqtt_sub(const char* MQTT_SUB_TOPIC) {   // Subscribe to desirable topics
 }
 
 
-void Mqtt_pub(Mqtt_message *mqtt_message, const char* MQTT_PUB_TOPIC = _MQTT_CLIENT_ID) {   // Publish data to desirable topics
+void Mqtt_pub(Mqtt_message *mqtt_message, const char* MQTT_PUB_TOPIC = _MQTT_TOPIC) {   // Publish data to desirable topics
     StaticJsonDocument<256> Json_Buffer;
     size_t len;
 
@@ -119,7 +121,7 @@ void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {   //
     deserializeJson(Json_Buffer, p_payload, p_length);
 
     // Filter messages addresed to user
-    if (strcmp(Json_Buffer["id"], _MQTT_CLIENT_ID) == 0) {   
+    if (strcmp(Json_Buffer["id"], _MQTT_CLIENT_ID) == 0 || strcmp(Json_Buffer["id"], "All") == 0) {
         // Store payload in buffers
         Mqtt_topic = p_topic;
         Mqtt_payload = payload;
@@ -139,7 +141,7 @@ void Mqtt_reconnect() {
             // Once connected, publish an announcement...
             client.publish(_MQTT_CLIENT_ID, "hello world");
             // ... and resubscribe
-            client.subscribe(_MQTT_CLIENT_ID);
+            client.subscribe(_MQTT_TOPIC);
 
         }
         else {
@@ -153,13 +155,14 @@ void Mqtt_reconnect() {
 }
 
 
-void Mqtt_setup(const char* WIFI_SSID, const char* WIFI_PASSWORD, const char* MQTT_CLIENT_ID, const char* MQTT_SERVER_IP, const uint16_t MQTT_SERVER_PORT) {
+void Mqtt_setup(const char* WIFI_SSID, const char* WIFI_PASSWORD, const char* MQTT_CLIENT_ID, const char* MQTT_SERVER_IP, const uint16_t MQTT_SERVER_PORT, const char* MQTT_TOPIC) {
     
     _WIFI_SSID        = WIFI_SSID;
     _WIFI_PASSWORD    = WIFI_PASSWORD;
     _MQTT_CLIENT_ID   = MQTT_CLIENT_ID;
     _MQTT_SERVER_IP   = MQTT_SERVER_IP;
     _MQTT_SERVER_PORT = MQTT_SERVER_PORT;
+    _MQTT_TOPIC       = MQTT_TOPIC;
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(_WIFI_SSID, _WIFI_PASSWORD);

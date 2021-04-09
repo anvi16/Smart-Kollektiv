@@ -3,16 +3,6 @@
 #define Global_Structs_H
 
 
-enum Users {
-	Hub	  = 0x00,
-	user1 = 0x01,
-	user2 = 0x02,
-	user3 = 0x03,
-	user4 = 0x04,
-	user5 = 0x05,
-	user6 = 0x06
-};
-
 enum Room {
 	NaN			= 0x00,
 	dormroom_1	= 0x01,
@@ -79,7 +69,7 @@ typedef struct
 
 struct Mqtt_message
 {
-	Users resiver;
+	const char* resiver;
 	Room room;
 	Header header;
 	Data_int data_int[10];

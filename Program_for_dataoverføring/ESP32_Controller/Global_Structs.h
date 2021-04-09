@@ -41,10 +41,11 @@ enum Header {
 
 typedef struct 
 {
-	String id;
+	const char* id;
 	Room room;
 	Days day;
-	String time;
+	int time;
+	bool check;
 } Booking;
 
 typedef struct
@@ -75,5 +76,8 @@ struct Mqtt_message
 	Data_int data_int[10];
 	Data_String data_String[10];
 };
+
+
+
 
 #endif

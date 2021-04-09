@@ -9,6 +9,7 @@ Description:
 
 
 #include "MQTT.h"
+#include "Booking.h"
 
 
 
@@ -55,6 +56,7 @@ void setup() {
 	Mqtt_sub(MQTT_SUB_TOPIC);
 		// Publish data to desirable topics
 	Mqtt_pub(&mqtt_message, MQTT_PUB_TOPIC);
+	Booking_setup(MQTT_CLIENT_ID);
 
 	// Exsamples, change values in structs
 		//user.room = dormroom_2;
@@ -86,9 +88,17 @@ void Mqtt_recive() {
 		Serial.println((const char*)Mqtt_Json_payload["data_String"]["Hei"]);
 
 		int temp = Mqtt_Json_payload["data_int"]["Temp"];
-
 	}
+	if (int(Mqtt_Json_payload["header"]) == booking) {
+			int booking_room = Mqtt_Json_payload["room"];
+			String user = Mqtt_Json_payload["data_Sring"]["User"];
+			Serial.println("Hei");
+
+			Booking_recive(bool(Mqtt_Json_payload["data_int"]["Check"]));
+	}
+		
 
 	// Clear message buffers 
 	Mqtt_clear_msg();
 }
+

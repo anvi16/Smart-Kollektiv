@@ -159,7 +159,7 @@ void Doorbell_call_user(String user) {
 
 
 void Doorbell_send(String user) {
-    doorbell_message.resiver = user;
+    doorbell_message.resiver = user.c_str();
     doorbell_message.room = Entry;
     doorbell_message.header = Doorbell;
 

@@ -1,0 +1,5 @@
+.vs/*
+_vm/*
+*.vcxpro
+CppProperties.json
+Debug/*

@@ -4,7 +4,7 @@ Created by: Group 8
 Version: v1.0  04/04/2021
 
 Description: 
-  Hand held controller test
+  Hand held controller
 *************************************************/
 
 

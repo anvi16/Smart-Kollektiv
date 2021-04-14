@@ -1,0 +1,30 @@
+
+
+--Changes made to different files for setup--
+
+
+SetupX_Template.h
+    #39 - Undefined wrong driver
+    #48 - Defined the correct driver
+    #81 - Defined the correct res
+    #83 - Undefined the incorrect res
+    #159-161 - Undefined incorrect HW pins
+    #195-196 - Defined SDA and SCL pins
+    #198-199 - Defined DC and RST pins
+
+User_Setup.h
+    #39 - Undefined wrong driver
+    #48 - Defined the correct driver
+    #81 - Defined the correct res
+    #83 - Undefined the incorrect res
+    #159-161 - Undefined incorrect HW pins
+    #195-196 - Defined SDA and SCL pins
+    #198-199 - Defined DC and RST pins
+
+User_Setup_Select.h
+    #52 - Selected correct setup header file Setup24_ST7789
+
+Setup24_ST7789
+    # 22-26 - Defined right setup
+    # 29-31 - Undefined wrong setup
+    # 

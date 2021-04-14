@@ -13,7 +13,6 @@ void Booking_send();
 void Booking_setup(const char* user) {
 	_user = user;
 
-	book.id = "Hub";
 	book.room = kitchen;
 	book.day = Monday;
 	book.time = 35050923;
@@ -27,7 +26,7 @@ void Booking_loop() {
 
 
 void Booking_send() {
-	mqtt_booking_message.resiver		= book.id;
+	mqtt_booking_message.resiver		= "Hub";
 	mqtt_booking_message.room			= book.room;
 	mqtt_booking_message.header			= booking;
 	mqtt_booking_message.data_String[0] = { "User",  _user };

@@ -41,11 +41,9 @@ enum Header {
 
 typedef struct 
 {
-	const char* id;
 	Room room;
 	Days day;
 	int time;
-	bool check;
 } Booking;
 
 typedef struct

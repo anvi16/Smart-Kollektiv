@@ -41,6 +41,12 @@ def on_message(client, userdata, message):
     if (payload["header"] == Header.Doorbell):
         Doorbell(payload["String_data"]["user"])
 
+    if (payload["header"] == Header.Booking):
+        _user = payload["String_data"]["User"]
+        _room = payload["room"]
+        _day =  payload["int_data"]["Day"]
+        _time = payload["int_data"]["Time"]
+        Booking_handeler(_user, _day, _time)
 
 
 client= paho.Client(id) #create client object client1.on_publish = on_publish #assign function to callback client1.connect(broker,port) #establish connection client1.publish("house/bulb1","on")

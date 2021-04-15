@@ -1,11 +1,14 @@
 
-#ifndef CONTROLLER_CONFIG.H
-#define CONTROLLER_CONFIG.H
+// #ifndef CONTROLLER_CONFIG.H
+// #define CONTROLLER_CONFIG.H
 
-#define pin_up      26
-#define pin_dwn     12
-#define pin_lft     14
-#define pin_rgt     27
+#define pin_heating_LED     12
+#define pin_temp_sensor     13
+#define pin_light_sensor    25   
+#define pin_up              34
+#define pin_dwn             35
+#define pin_lft             32
+#define pin_rgt             33
 
 #include <vector>
 #include <stdlib.h>
@@ -17,4 +20,4 @@
 void hw_setup();
 void tft_setup();
 
-#endif
+// #endif

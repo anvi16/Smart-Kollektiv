@@ -1,5 +1,5 @@
-#ifndef OLED.H
-#define OLED.H
+// #ifndef OLED.H
+// #define OLED.H
 
 #include <Controller_config.h>
 
@@ -12,9 +12,7 @@
 #define rect_h 50       // Menu rectangle height
 #define rect_in 20      // Indentation for menu rectangle
 
-void OLED_setup();
-void OLED_scroll();
-void box_selected(bool);
-void menuframe(int, bool, const char*);
+void menu_icon(int, int, const char*); //Displays single menu icon. Must be called for all buttons
+void val_adjust_window(int);
 
-#endif
+// #endif

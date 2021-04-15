@@ -11,7 +11,7 @@ Description:
 #include "OLED.h"
 
 // Declare 
-bool arw_up, arw_dwn, arw_lft, arw_rgt;   // Declare values representing button states
+bool buttonstate_up, buttonstate_dwn, buttonstate_lft, buttonstate_rgt;   // Declare values representing button states
 int targetTime;
 
 void setup() {
@@ -20,61 +20,68 @@ void setup() {
   tft_setup();          // Setup parameters for OLED
 
   Serial.begin(115200); // Serial communication
-  
-  int targetTime = 0; 
 }
 
-const char * main_cathegories[4] = {"Temperature", "Light", "Fan", "Airing"};
-const char* test_word1 = "LIGHT";
-const char* test_word2 = "TEMPERATURE";
-const char* test_word3 = "FAN";
+int sel_val_1 = 1;
 
-static const char* const titles[] = {"Aa", "Bb", "Cc", "Dd"};
+// Main menu
+const char * main_cathegories[] = {"Light", "Temperature", "Fan", "Airing"};
 
-const int lengde = countof(titles);
+// Light control
+const char * light_cathegories[] = {"Toggle", "Dim"};
+const char * dim_cathegories[] = {""}; //////// NEEDS SEPARATE WINDOW SHOWING + AND -
 
+// Temperature control
+const char * temperature_cathegories[] = {"Temperature", "Weekly schedule", "Fan", "Airing"};
+
+// Fan control 
+const char * fan_cathegories[] = {"Override auto", "Fan power"};
+//const char * fan_cathegories[] = {""};
+//const char * fan_cathegories[] = {""};
+//const char * fan_cathegories[] = {""};
+
+// Declare and set initial button states 
+bool prev_buttonstate_up = LOW;
+bool prev_buttonstate_dwn = LOW;
+bool prev_buttonstate_lft = LOW;
+bool prev_buttonstate_rgt = LOW;
 
 void loop() {
 
   // Read navigation buttons
-  arw_up = digitalRead(pin_up);
-  arw_dwn = digitalRead(pin_dwn);
-  arw_lft = digitalRead(pin_lft);
-  arw_rgt = digitalRead(pin_rgt);
+  buttonstate_up = digitalRead(pin_up);
+  buttonstate_dwn = digitalRead(pin_dwn);
+  buttonstate_lft = digitalRead(pin_lft);
+  buttonstate_rgt = digitalRead(pin_rgt);
 
-  if (targetTime <= millis()){
-    targetTime = millis() + 1000;
-    Serial.println(arw_up);
-
-    OLED_menu(1, titles);
+  if ((buttonstate_dwn == HIGH) && (prev_buttonstate_dwn == LOW)){
     
+    sel_val_1 ++;
+    TFT_eSPI().fillScreen(TFT_BLACK);
+  }
 
+  if ((buttonstate_up == HIGH) && (prev_buttonstate_up == LOW)){
+    if (sel_val_1 > 1){
+      sel_val_1 --;
+      TFT_eSPI().fillScreen(TFT_BLACK);
+    }
+  }
 
-      // ADJUST % WINDOW
-      // drawRoundRect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t radius, uint32_t color),
-      
-      TFT_eSPI().drawCentreString(test_word2, 120, 120-10, 4);
+  Serial.println(sel_val_1);
+  
+  // menu_icon(1, sel_val_1, main_cathegories[0]);
+  // menu_icon(2, sel_val_1, main_cathegories[1]);
+  // menu_icon(3, sel_val_1, main_cathegories[2]);
+  // menu_icon(4, sel_val_1, main_cathegories[3]);
 
-      bool selected = LOW;
-      int active_element = 1;
-      if (selected) { 
-        // Make outline of rectangle thicker
-        box_selected(active_element);
-        // Make outline three times thicker to show it is selected
-        
-      }
+  val_adjust_window(34);
 
-      TFT_eSPI().drawRoundRect(20+1, 95+1, 200-2, 50-2, 10, TFT_SKYBLUE);
-      TFT_eSPI().drawRoundRect(20+0, 95+0, 200+0, 50+0, 10, TFT_SKYBLUE);
-      TFT_eSPI().drawRoundRect(20-1, 95-1, 200+2, 50+2, 10, TFT_SKYBLUE);
-      
-      TFT_eSPI().drawCentreString(test_word3, cntr_x, cntr_y + space_y, 4);
-      TFT_eSPI().drawRoundRect(20,165,rect_w, rect_h, 10, TFT_SKYBLUE);
+  prev_buttonstate_up = buttonstate_up;
+  prev_buttonstate_dwn = buttonstate_dwn;
+  prev_buttonstate_lft = buttonstate_lft;
+  prev_buttonstate_rgt = buttonstate_rgt;
 
-      TFT_eSPI().drawRoundRect(20,235,200, 50, 10, TFT_SKYBLUE);
-    } 
-
+  delay(50);
 }
-
 
 

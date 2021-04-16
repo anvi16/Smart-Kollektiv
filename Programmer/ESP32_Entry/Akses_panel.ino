@@ -4,18 +4,6 @@
    Smart_kollektiv: Acsses.
 */
 
-#include<CircusESP32Lib.h>
-
-char ssid[] = "Telenor6619dyp";
-char password[] = "josehome08";
-char server[] = "www.circusofthings.com";
-char token[] = "LED";
-char User1_Key_1[] = "6442";
-char User1_Key_2[] = "30385";
-char User1_Key_3[] = "8691";
-char User1_Key_4[] = "21957";
-
-CircusESP32Lib circusESP32(server,ssid,password);
 
 
 int button_pin0 = 0;
@@ -32,14 +20,9 @@ int button_pin9 = 9;
 int button_pinEnter = 10;
 int button_pinRemove = 11;
 
-int user1_val_1;
-int user1_val_2;
-int user1_val_3;
-int user1_val_4;
-
 int key_nr ;
 int code[4];
-int access_code1[4] = {user1_val_1, user1_val_2, user1_val_3, user1_val_4} ;
+int access_code1[4] = {0, 0, 0, 0} ;
 int access_code2[4] = {1, 2, 3, 4} ;
 int access_code3[4] = {1, 0, 0, 0} ;
 int access_code4[4] = {4, 3, 2, 1} ;
@@ -64,17 +47,12 @@ void setup()
   pinMode(9, INPUT_PULLUP);
   pinMode(10, INPUT_PULLUP);
   pinMode(11, INPUT_PULLUP);
-  circusESP32.begin();
-
 }
 
 void loop()
 {
-  user1_val_1 = circusESP32.read(User1_Key_1,token);
-  user1_val_2 = circusESP32.read(User1_Key_2,token);
-  user1_val_3 = circusESP32.read(User1_Key_3,token);
-  user1_val_4 = circusESP32.read(User1_Key_4,token);
-  
+
+
   byte b0 = digitalRead(button_pin0);
   byte b1 = digitalRead(button_pin1);
   byte b2 = digitalRead(button_pin2);
@@ -119,6 +97,7 @@ void loop()
     if (accept_the_code >= 1)
     {
       Serial.println("LE GOW");
+      Open_door();
       accept_the_code = 0;
     }
     else
@@ -128,20 +107,6 @@ void loop()
   }
   delay(400);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 void Enter(int user_code[])
@@ -168,4 +133,10 @@ void Enter(int user_code[])
       break;
     }
   }
+}
+
+
+void Open_door()
+{
+  
 }

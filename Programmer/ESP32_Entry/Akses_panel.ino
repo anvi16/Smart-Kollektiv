@@ -179,15 +179,15 @@ bool Enter(int user_code[]) {
 }
 
 /*
-Hei, har godt over koden og lagt til en debounser (for å fjerne delay()'en) og en sjekk om knappene er holdt inne, 
-måtte flytte litt på deler av koden for å få det til. 
-Har ikke endret koden din noe mer en og fjrnet noen få overflødige variabler og fasongen (API'en gjør mye endringer selv), 
-håper du ser at koden er den samme. Du må gjerne ender tilbake det du skulle føle er nødvndig (utsene messig/ eventuelt annet)
+Hei, har godt over koden og lagt til en debounser (for ï¿½ fjerne delay()'en) og en sjekk om knappene er holdt inne, 
+mï¿½tte flytte litt pï¿½ deler av koden for ï¿½ fï¿½ det til. 
+Har ikke endret koden din noe mer en og fjrnet noen fï¿½ overflï¿½dige variabler og fasongen (API'en gjï¿½r mye endringer selv), 
+hï¿½per du ser at koden er den samme. Du mï¿½ gjerne ender tilbake det du skulle fï¿½le er nï¿½dvndig (utsene messig/ eventuelt annet)
 
-Lagt klart til å kunne lagre nye koder og kort med adgang til en spesial meny.
+Lagt klart til ï¿½ kunne lagre nye koder og kort med adgang til en spesial meny.
 
-Det må gjerne legges til litt komentarer på koden, underveis og ikke nøl med å prøve og ta kontakt på discord
-om du lurer på noe, eller lurer på hvordan det kan være lurt å legge inn oppdateringen av nye koder/kort mot rasperry pi.
-(Kan anbefale og ikke gå gjennom CoT)
+Det mï¿½ gjerne legges til litt komentarer pï¿½ koden, underveis og ikke nï¿½l med ï¿½ prï¿½ve og ta kontakt pï¿½ discord
+om du lurer pï¿½ noe, eller lurer pï¿½ hvordan det kan vï¿½re lurt ï¿½ legge inn oppdateringen av nye koder/kort mot rasperry pi.
+(Kan anbefale og ikke gï¿½ gjennom CoT)
 
 */

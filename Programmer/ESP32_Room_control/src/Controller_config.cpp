@@ -23,3 +23,7 @@ void tft_setup(){
     TFT_eSPI().setTextSize(1);
 }
 
+int navigate_up_dn(int menu_lvl_val, bool pos_edge_up, bool pos_edge_dwn){
+    // if 
+
+}

@@ -12,11 +12,11 @@
 #define rect_h 50       // Menu rectangle height
 #define rect_in 20      // Indentation for menu rectangle
 
-void menu_icon(int, int, std::string);                      // Displays single menu icon. Must be called for all buttons
-void val_adjust_window(int, const char*);                   // Displays the vale adjustment window
+void menu_icon(int, int, std::string);                      // Function drawing a single menu icon. Must be called for all "buttons" in a menu
+void val_adjust_window(int, const char*);                   // Function drawing a window dedicated to adjusting values (typically altering a percentage value)
 void display_menu(int, std::vector<std::string>);           // Displays one complete menu page
-int  menu_pos(bool, bool, int, std::vector<std::string>);   // Reads pos edge up and down and the current menu item list and current position and returns current pos
-int  mod_val(bool, bool, bool, bool, int);                        // If menu navigation, val_adj = LOW, if value adjustment +/- 5%, val_adj = HIGH   
-void toggle_popup(bool);
+int  mod_val(bool, bool, bool, bool, int);                  // If menu navigation, val_adj = LOW, if value adjustment +/- 5%, val_adj = HIGH   
+void toggle_popup(bool, const char*);
+void display_message(int, char*, char*, char*);             // Function for displaying a message on screen for x milliseconds
 
 // #endif

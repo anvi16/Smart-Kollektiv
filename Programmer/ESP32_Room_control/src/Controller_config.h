@@ -2,6 +2,7 @@
 // #ifndef CONTROLLER_CONFIG.H
 // #define CONTROLLER_CONFIG.H
 
+
 #define pin_heating_LED     12
 #define pin_temp_sensor     13
 #define pin_LED_room        14 
@@ -18,12 +19,20 @@
 #define CH3                 3
 
 
-#include <vector>
+
+// CoT parameters
+#define CoT_refresh_interval second
+
+
+
+
+#include <vector>               // Vector library
 #include <iostream>
-#include <stdlib.h>
-#include <ESP32_Servo.h>
-#include <SPI.h>
-#include <TFT_eSPI.h> // Hardware-specific library
+#include <stdlib.h>             // Library containing std namespace functions
+#include <ESP32_Servo.h>        // Library for servo motor control
+#include <SPI.h>                // TFT_eSPI is based on this library
+#include <TFT_eSPI.h>           // Library for controlling OLED
+#include <CircusESP32Lib.h>     // Library for Circus of Things (CoT)
 
 // Pre-declare functions
 void hw_setup();

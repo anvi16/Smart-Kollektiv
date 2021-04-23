@@ -33,6 +33,20 @@ void val_adjust_window(int variable, const char* header){
     TFT_eSPI().drawCentreString("%", cntr_x + 50 , cntr_y +40, 4);
 }
 
+// Function drawing a window dedicated to adjusting values (typically altering a percentage value)
+void temp_adjust_window(int variable, const char* header){
+    
+    TFT_eSPI().drawCentreString(header, cntr_x , cntr_y - 1*space_y, 4);
+    TFT_eSPI().drawRoundRect(rect_in, cntr_x - (rect_h/2) - 1*space_y, rect_w, rect_h, 10, TFT_SKYBLUE);   
+
+    char buffer[10];
+    TFT_eSPI().setTextSize(5);
+    TFT_eSPI().drawCentreString("-", cntr_x , cntr_y + 90, 4); 
+    TFT_eSPI().drawCentreString(itoa(variable, buffer, 10), cntr_x - 5 , cntr_y+32, 6);
+    TFT_eSPI().drawCentreString("+", cntr_x , cntr_y - 10, 4); 
+    TFT_eSPI().drawCentreString("°C", cntr_x + 50 , cntr_y +40, 4);
+}
+
 // Function displaying a popup that gives the state of a bool variable
 void toggle_popup(bool var_state, const char* header){                          
   
@@ -95,6 +109,20 @@ int mod_val(bool bottom_reached, bool percent_adj, bool pos_edge_up, bool pos_ed
         }
     }
     return value;
+}
+
+// Function reading "up" and "down" buttons to alter a temperature value
+int mod_temp(bool pos_edge_up, bool pos_edge_dwn, int value){   
+    
+  if ((pos_edge_dwn) && (value > 5)) {
+    value --;
+    TFT_eSPI().fillScreen(TFT_BLACK);    
+  }
+  else if ((pos_edge_up) && (value < 35)){
+    value ++;
+    TFT_eSPI().fillScreen(TFT_BLACK);
+  }
+  return value;
 }
 
 

@@ -43,7 +43,7 @@ def on_message(client, userdata, message):
 
 
 
-client= paho.Client(id) #create client object client1.on_publish = on_publish #assign function to callback client1.connect(broker,port) #establish connection client1.publish("house/bulb1","on")
+client= paho.Client() #create client object client1.on_publish = on_publish #assign function to callback client1.connect(broker,port) #establish connection client1.publish("house/bulb1","on")
 
 ######Bind function to callback
 client.on_message = on_message
@@ -52,7 +52,6 @@ client.on_message = on_message
 # loop
 print("connecting to broker ", broker)
 client.connect(broker) #connect
-client.loop_start() #start loop to process received messages
 print("subscribing ")
 client.subscribe("My_home/mqtt") #subscribe
 time.sleep(2)

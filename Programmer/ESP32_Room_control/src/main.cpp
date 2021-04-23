@@ -11,11 +11,62 @@ Description:
 #include "Controller_config.h"
 #include "OLED.h"
 #include "Peripherals.h"
+#include "../lib/MQTT/MQTT_Class.h"
 
 // Instanciate TFT_eSPI library for main function. If not instanciated, it's not possible to customize text size, text colour etc.
 TFT_eSPI tft_main = TFT_eSPI();
 
+/////////////////////////////////// Lagt til for mqtt kommunikasjon
+
+// Wifi: SSID, Password
+const char* WIFI_SSID = "Vik";
+const char* WIFI_PASSWORD = "Y897R123";
+
+// MQTT: ID, server IP, port, topics
+const char* MQTT_CLIENT_ID = "RC_1";
+const char* MQTT_SERVER_IP = "broker.hivemq.com";
+const uint16_t  MQTT_SERVER_PORT = 1883;
+// Commen topic for system
+const char* MQTT_TOPIC = "My_home/mqtt";
+
+// MQTT communication
+MQTT mqtt;
+
+// Struct as message buffer
+Mqtt_message mqtt_message;
+
+StaticJsonDocument<MQTT_MAX_PACKET_SIZE> Json_payload;
+
+void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
+    // Concat the payload into a string
+    String payload;
+    for (uint8_t i = 0; i < p_length; i++) {
+        payload.concat((char)p_payload[i]);
+    }
+    Serial.println(payload);
+
+    deserializeJson(Json_payload, p_payload, p_length);
+    // Check if message is for user
+    if (strcmp(Json_payload["id"], MQTT_CLIENT_ID) == 0 || strcmp(Json_payload["id"], "All") == 0) {
+        if (int(Json_payload["header"]) == Room_Controller) {
+            Doorbell_recive(); //int(Json_payload["data_int"]["Outdoor_temp"])
+        }
+    }
+}
+
+/*
+mqtt_message.resiver = "Hub";
+mqtt_message.header = Doorbell;
+mqtt_message.room = Entry;
+mqtt_message.data_int[0] = { "key", 10 };
+mqtt.pub(mqtt_message, MQTT_TOPIC, false);
+*/
+
+//////////////////////////////////
+
 void setup() {
+  // Mqtt setup
+  mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
 
   // Set up hardware for room controller
   hw_setup();           // Setup hardware for room controller
@@ -115,6 +166,8 @@ std::vector<std::string> main_cathegories{"Light", "Temperature", "Fan", "Airing
 
 
 void loop() {
+  // Mqtt loop
+  mqtt.keepalive();
 
   // Read navigation pushbuttons
   buttonstate_up = digitalRead(pin_up);

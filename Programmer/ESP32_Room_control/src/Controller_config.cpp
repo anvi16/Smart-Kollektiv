@@ -13,13 +13,10 @@ void hw_setup(){
     pinMode(pin_light_sensor, INPUT);
 
     pinMode(pin_heating_LED, OUTPUT);
-}
+    pinMode(pin_LED_room, OUTPUT);
 
-void tft_setup(){
-    TFT_eSPI().init();
-    TFT_eSPI().setRotation(1);
-    TFT_eSPI().fillScreen(TFT_BLACK);
-    TFT_eSPI().setTextColor(TFT_SKYBLUE, TFT_BLACK);
-    TFT_eSPI().setTextSize(1);
+    analogReadResolution(8);
+    ledcSetup(CH1, 5000, 8);
+    ledcAttachPin(pin_LED_room, CH1);
 }
 

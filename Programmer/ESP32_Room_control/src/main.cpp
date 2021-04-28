@@ -14,6 +14,9 @@ Description:
 #include "Peripherals.h"
 #include "ClassTest.h"
 #include "../lib/MQTT/MQTT_Class.h"
+#include "Servo.h"
+
+//#define DEBUG
 
 // INTERRUPT: 
 volatile bool return_to_menu = LOW;
@@ -43,6 +46,8 @@ int         wiFi_reconnection_freq  = 30 * SECOND;        // Try to reconnect ev
 // WiFi: Parameters for CoT
 char        ssid[]                  = "jorgen";
 char        pw[]                    = "majones123";
+const char* WIFI_SSID = "DESKTOP-P40U26J 5521";
+const char* WIFI_PASSWORD = "g8X2684+";
 
 // MQTT: ID, server IP, port, topics
 const char* MQTT_CLIENT_ID          = "RC_1";
@@ -75,7 +80,7 @@ void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
     // Check if message is for user
     if (strcmp(Json_payload["id"], MQTT_CLIENT_ID) == 0 || strcmp(Json_payload["id"], "All") == 0) {
         if (int(Json_payload["header"]) == Room_Controller) {
-            Doorbell_recive(); //int(Json_payload["data_int"]["Outdoor_temp"])
+            servoMotor(int(Json_payload["data_int"]["Outdoor_temp"])); 
         }
     }
 }
@@ -86,6 +91,7 @@ mqtt_message.resiver = "Hub";
 mqtt_message.header = Doorbell;
 mqtt_message.room = Entry;
 mqtt_message.data_int[0] = { "key", 10 };
+mqtt_message.data_int[1] = { "key", 10 };
 mqtt.pub(mqtt_message, MQTT_TOPIC, false);
 */
 
@@ -93,6 +99,16 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
 CircusESP32Lib CoT(COT_SERVER, ssid, pw);
 
 void setup() {
+  // Set up serial communication
+  Serial.begin(115200); // Serial communication
+  Servo_setup();
+
+
+  // Mqtt setup
+  mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
+
+  // Set up hardware for room controller
+  hw_setup();           // Setup hardware for room controller
   
   // Serial: Set up serial communication
   Serial.begin(115200); // Serial communication
@@ -173,6 +189,7 @@ void setup() {
                           "Successfully!");
   delay(READTIME);                                            // Allow user to read screen
   tft_main.fillScreen(TFT_BLACK);                         // Clear screen
+
 }
 
 
@@ -736,6 +753,34 @@ RTC_DATA_ATTR int x = 0;  // Variable saved even when in deep sleep
 
 
 
+  
+  
+  if ((roomlight_state) && (roomlight_dutycycle > 6)){                       // Toggle ON
+    ledcWrite(CH1, roomlight_dutycycle);
+  }
+  else{                                       // Toggle OFF
+    ledcWrite(CH1, 0);
+  }
+  
+  // Just checking how sensor reacts to LED
+  #ifdef DEBUB
+  Serial.print("Roomlight intensity mesured: ");
+  Serial.println(roomlight_intensity_measured);
+  Serial.print("Roomlight intensity requested dimmed: ");
+  Serial.println(roomlight_intensity_requested_dimmed);
+  Serial.print("Roomlight intensity setpoint: ");
+  Serial.println(roomlight_setpoint_intensity);
+  Serial.print("Roomlight duty cycle: ");
+  Serial.println(roomlight_dutycycle);
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+#endif
+  delay(50);
+  
 
 
 

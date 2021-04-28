@@ -1,0 +1,80 @@
+/************************************************
+Prosjekt: Smart Kollektiv
+Created by: Group 8
+Version: v1.0	04/04/2021
+
+Description: 
+	Hand held controller
+*************************************************/
+
+
+#include "MQTT_Recive.h"
+#include "MQTT.h"
+
+
+
+// Wifi: SSID, Password
+const char* WIFI_SSID = "Vik";
+const char* WIFI_PASSWORD = "Y897R123";
+
+// MQTT: ID, server IP, port, topics
+const char* MQTT_CLIENT_ID = "user1";
+const char* MQTT_SERVER_IP = "broker.hivemq.com"; //"192.168.0.120";
+const uint16_t  MQTT_SERVER_PORT = 1883;
+
+const char* MQTT_SUB_TOPIC = "My_home/sub";
+const char* MQTT_PUB_TOPIC = "My_home/pub";
+
+
+
+
+// Initializing structs
+Mqtt_message mqtt_message = {	
+								Hub,						// Resiver
+								NaN,						// Room
+								None,						// Header
+								{ "temp", 10, 
+								  "heat", 20 },				// Data_int
+								{ "hei" , "verden" }		// Data_String
+							};
+
+User user = {	
+				1,			// ID
+				dormroom_1, // Room
+				"10W",		// Energi comsumption
+				0			// Guests
+			};
+
+
+
+
+void setup() {
+	// Start serial monior
+	Serial.begin(115200);
+
+	// Set up MQTT for communicatision
+	Mqtt_setup(WIFI_SSID, WIFI_PASSWORD, MQTT_CLIENT_ID, MQTT_SERVER_IP, MQTT_SERVER_PORT);
+	delay(5);
+	// Set up Topic's
+		// Subscribe to desirable topics
+	Mqtt_sub(MQTT_SUB_TOPIC);
+		// Publish data to desirable topics
+	Mqtt_pub(&mqtt_message, MQTT_PUB_TOPIC);
+
+	// Exsamples, change values in structs
+		//user.room = dormroom_2;
+
+		//mqtt_message.data1[0].key = "Heat";
+		//mqtt_message.data1[0].value = 20;
+		//
+		//								key    value
+		//mqtt_message.data_int[0] = { "Hello",  30  };
+		//mqtt_message.data_int[1] = { "Hei"  ,  50  };
+}
+
+
+void loop() {
+	Mqtt_loop();
+	Mqtt_recive();
+	
+}

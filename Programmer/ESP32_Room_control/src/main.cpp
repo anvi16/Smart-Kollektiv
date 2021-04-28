@@ -19,8 +19,6 @@ Description:
 //#define DEBUG
 
 // INTERRUPT: 
-volatile bool return_to_menu = LOW;
-
 
 void IRAM_ATTR ISR();
 // Function for "waking" from screensaver mode
@@ -39,7 +37,6 @@ bool        wiFi_status             = LOW;
 bool        wiFi_status_prev        = LOW;
 bool        wiFi_status_pos_edge    = LOW;
 bool        wiFi_status_neg_edge    = LOW;
-bool        cot_operational         = LOW;                // Bool saying if the CoT connection has been established after WiFi loss
 unsigned long wiFi_last_connection_attempt_ts = 0;        // Timestamp (millis()) for last connection attempt to WiFi
 int         wiFi_reconnection_freq  = 30 * SECOND;        // Try to reconnect every 1 minute
 
@@ -114,7 +111,6 @@ void setup() {
   Serial.begin(115200); // Serial communication
   
   
-  
   // OLED: Set up initial parameters for SPI control of OLED
   tft_main.init();
   tft_main.setRotation(1);
@@ -124,6 +120,7 @@ void setup() {
   display_setup_screen();                                 // Activate screen saying "Setting up"
   delay(READTIME);                                        // Allow user to read message on screen
   
+
   // WiFi: Initial connection attempt
   tft_main.fillScreen(TFT_BLACK);                         // Feedback to user: Connecting WiFi
   display_setup_messages("Connecting to", "WiFi", "Please wait...");
@@ -149,6 +146,7 @@ void setup() {
     delay(READTIME);                                      // Allow user to read screen
     
     CoT.begin();                                          // Set up CoT connection
+    cot_operational                 = HIGH;               // Gives feedback that CoT is up and running
     
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
     display_setup_messages( "Connecting to",              // Feedback to user
@@ -184,9 +182,9 @@ void setup() {
   Temperature t{23, 17, 13, 8};
 
   tft_main.fillScreen(TFT_BLACK);                         // Clear screen
-  display_setup_messages( "Setup",                        // Feedback to user
-                          "completed:", 
-                          "Successfully!");
+  display_setup_messages( "Setting up",                        // Feedback to user
+                          "unit:", 
+                          "Completed!");
   delay(READTIME);                                            // Allow user to read screen
   tft_main.fillScreen(TFT_BLACK);                         // Clear screen
 
@@ -265,14 +263,18 @@ int cot_airing_opening_prev         = 0;                  // Set percentage valu
 
 // NAVIGATION: Variables for menu navigation
 bool  buttonstate_up, buttonstate_dwn, buttonstate_lft, buttonstate_rgt;   // Declare values representing button states
-volatile unsigned long buttonpress_ts;
+unsigned long buttonpress_ts;
 bool  val_adjust                    = LOW;                // Var selecting if the view to be shown is a menu or someting else
 bool  temp_adjust                   = LOW;                // Var selecting if the view to be shown is for temperature modification
 int   adjusted_value;                                     // Containing the variable currently being altered
 char* adjusted_value_name;                                // Name of the variable currently being altered (for visualisation on screen)
-volatile bool  screensaver          = LOW;                // Giving signal if user has been inactive and screensaver must be applied
+
+// SCREENSAVER
+bool  screensaver                   = LOW;                // Giving signal if user has been inactive and screensaver must be applied
 bool  screensaver_prev              = LOW;                // For compariosn next round anf pos edge detect
-int   screensaver_activate_time     = 30 * SECOND;        // If inactive for more than 15 seconds, activate screensaver
+int   screensaver_activate_time     = 30 * SECOND;        // If inactive for more than 20 seconds, activate screensaver
+int   screensaver_exe_number        = 0;                  // Screensaver execution number. Decides which time-consuming function should be executed the current scan (typically CoT action)
+volatile bool screensaver_interrupt = LOW;
 
 // NAVIGATION: Declare and set initial button states 
 bool  prev_buttonstate_up           = LOW;
@@ -345,19 +347,19 @@ void loop() {
 
   // NAVIGATION: Pushutton edge detection
   if ((buttonstate_up == HIGH) && (prev_buttonstate_up == LOW))   { pos_edge_up = HIGH;                 // Pos edge UP
-                                                                    buttonpress_ts = millis();}      
+                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
   else {pos_edge_up = LOW;}
 
   if ((buttonstate_dwn == HIGH) && (prev_buttonstate_dwn == LOW)) { pos_edge_dwn = HIGH;                // Pos edge DOWN
-                                                                    buttonpress_ts = millis();}   
+                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
   else {pos_edge_dwn = LOW;}
 
   if ((buttonstate_lft == HIGH) && (prev_buttonstate_lft == LOW)) { pos_edge_lft = HIGH;                // Pos edge LEFT
-                                                                    buttonpress_ts = millis();}   
+                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
   else {pos_edge_lft = LOW;}
 
   if ((buttonstate_rgt == HIGH) && (prev_buttonstate_rgt == LOW)) { pos_edge_rgt = HIGH;                // Pos edge RIGHT
-                                                                    buttonpress_ts = millis();}   
+                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
   else {pos_edge_rgt = LOW;}
 
   
@@ -462,21 +464,46 @@ void loop() {
   // SCREENSAVER: Background operations when screensaver is activated
   else if (wiFi_status && screensaver){                   // Only operate CoT when screensaver is activated
     
+    Serial.println("      Checking if CoT is operational");
     if (cot_operational){
       
-      // CoT: Each of the CoT operations are veru time consuming
-      if (!return_to_menu)  { cot_light_toggle    = CoT.read(KEY_LIGHT_TOGGLE,  TOKEN);}
-      if (!return_to_menu)  { cot_light_dimming   = CoT.read(KEY_LIGHT_DIMMING, TOKEN);}
-      if (!return_to_menu)  { cot_temp_home       = CoT.read(KEY_TEMP_HOME,     TOKEN);}
-      if (!return_to_menu)  { cot_temp_away       = CoT.read(KEY_TEMP_AWAY,     TOKEN);}
-      if (!return_to_menu)  { cot_temp_night      = CoT.read(KEY_TEMP_NIGHT,    TOKEN);}
-      if (!return_to_menu)  { cot_temp_long_abs   = CoT.read(KEY_TEMP_LONG_ABS, TOKEN);}
-      if (!return_to_menu)  { cot_fan_power       = CoT.read(KEY_FAN_POWER,     TOKEN);}
-      if (!return_to_menu)  { cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN);}
+      // Since the CoT communication is incredibly slow, we will only execute one CoT operation per cycle to avoid stalling the rest of the program longer than necessarry
+      
+      // Reset counter if end if line is reached
+      if (screensaver_exe_number > 15){
+        screensaver_exe_number = 0;                              // Reset counter
+      }
+
+      // CoT: Each of the CoT operations are very time consuming
+      if      (screensaver_exe_number == 0)   { cot_light_toggle    = CoT.read(KEY_LIGHT_TOGGLE,  TOKEN);}
+      else if (screensaver_exe_number == 1)   { cot_light_dimming   = CoT.read(KEY_LIGHT_DIMMING, TOKEN);}
+      else if (screensaver_exe_number == 2)   { cot_temp_home       = CoT.read(KEY_TEMP_HOME,     TOKEN);}
+      else if (screensaver_exe_number == 3)   { cot_temp_away       = CoT.read(KEY_TEMP_AWAY,     TOKEN);}
+      else if (screensaver_exe_number == 4)   { cot_temp_night      = CoT.read(KEY_TEMP_NIGHT,    TOKEN);}
+      else if (screensaver_exe_number == 5)   { cot_temp_long_abs   = CoT.read(KEY_TEMP_LONG_ABS, TOKEN);}
+      else if (screensaver_exe_number == 6)   { cot_fan_power       = CoT.read(KEY_FAN_POWER,     TOKEN);}
+      else if (screensaver_exe_number == 7)   { cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN);}
+      
+      // LIGHT: CoT write
+      else if (screensaver_exe_number == 8)   { CoT.write(KEY_LIGHT_TOGGLE,   1000, TOKEN);}
+      else if (screensaver_exe_number == 9)   { CoT.write(KEY_LIGHT_DIMMING,  1000, TOKEN);}
+      
+      // TEMPERATURE: CoT write
+      else if (screensaver_exe_number == 10)  { CoT.write(KEY_TEMP_HOME,      1000, TOKEN);}
+      else if (screensaver_exe_number == 11)  { CoT.write(KEY_TEMP_AWAY,      1000, TOKEN);}
+      else if (screensaver_exe_number == 12)  { CoT.write(KEY_TEMP_NIGHT,     1000, TOKEN);}
+      else if (screensaver_exe_number == 13)  { CoT.write(KEY_TEMP_LONG_ABS,  1000, TOKEN);}
+      
+      // FAN: CoT write
+      else if (screensaver_exe_number == 14)  { CoT.write(KEY_FAN_POWER,      1000, TOKEN);}
+
+      // AIRING
+      else if (screensaver_exe_number == 15)  { CoT.write(KEY_AIRING_OPENING, 1000, TOKEN);}
+
+      screensaver_exe_number ++;                                 // Incrememt item number each cycle
     }
   } 
 
-    
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
   //                                  MENU NAVIGATION                                //
@@ -664,27 +691,7 @@ void loop() {
   }
 
 
-  /////////////////////////////////////////////////////////////////////////////////////
-  //                                                                                 //
-  //                              CIRCUS OF THINGS - WRITE                           //
-  //                                                                                 //
-  /////////////////////////////////////////////////////////////////////////////////////
-  
-  // Light values
-  ////////////////////CoT.write(key_light_toggle,   1000, token);
-  ////////////////////CoT.write(key_light_dimming,  1000, token);
-
-  // Temperature values
-  ////////////////////CoT.write(key_temp_home,      1000, token);
-  ////////////////////CoT.write(key_temp_away,      1000, token);
-  ////////////////////CoT.write(key_temp_night,     1000, token);
-  ////////////////////CoT.write(key_temp_long_abs,  1000, token);
-
-  // Fan values
-  ////////////////////CoT.write(key_fan_power,      1000, token);
-
-  // Airing values
-  ////////////////////CoT.write(key_airing_opening, 1000, token);
+ 
 
 
   /////////////////////////////////////////////////////////////////////////////////////
@@ -713,40 +720,31 @@ void loop() {
   cot_airing_opening_prev = cot_airing_opening;       // Aiting       - opening (degrees)
 
   
-  // Time
+  // TIME
   millis_prev = millis();
 
-  // Screensaver
+  // SCREENSAVER
   screensaver_prev = screensaver;
 
-  Serial.print("Roomlight dutycycle:      ");
-  Serial.println(roomlight_dutycycle);
-  Serial.print("Roomlight state:      ");
-  Serial.println(roomlight_state);
-
   // INTERRUPT
-  return_to_menu = LOW;
+  if (screensaver_interrupt){
+    screensaver_interrupt = LOW;
+    buttonpress_ts        = millis();
 
- 
+    // When no longer in screensaver mode, buttons resume to normal operation
+    detachInterrupt(pin_up);
+    detachInterrupt(pin_dwn);
+    detachInterrupt(pin_lft);
+    detachInterrupt(pin_rgt);
+  }
+
 }
 
-void IRAM_ATTR ISR(){                                 // Function for "waking" from screensaver mode
-  
-  TFT_eSPI().fillScreen(TFT_BLACK);
-  display_setup_messages( "Waking up",            // Feedback to user
-                          "unit", 
-                          "Please wait...");
+void IRAM_ATTR ISR(){                                 // Function for "waking" from screensaver mode.
+  screensaver_interrupt   = HIGH;
 
-  return_to_menu  = HIGH;
-  screensaver     = LOW;
-  buttonpress_ts  = millis();
-
-  // When no longer in screensaver mode, buttons resume to normal operation
-  detachInterrupt(pin_up);
-  detachInterrupt(pin_dwn);
-  detachInterrupt(pin_lft);
-  detachInterrupt(pin_rgt);
 }
+
 RTC_DATA_ATTR int x = 0;  // Variable saved even when in deep sleep
 
 

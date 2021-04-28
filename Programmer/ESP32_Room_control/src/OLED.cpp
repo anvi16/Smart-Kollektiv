@@ -131,8 +131,43 @@ void display_message(int displaytime_ms, char* line1, char* line2, char* line3){
 
   
    tft_display_message.drawCentreString(line1, cntr_x , cntr_y -35, 4);
-   tft_display_message.drawCentreString(line2, cntr_x , cntr_y - 0, 4);
+   tft_display_message.drawCentreString(line2, cntr_x , cntr_y + 0, 4);
    tft_display_message.drawCentreString(line3, cntr_x , cntr_y +35, 4);
    tft_display_message.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);
    delay(displaytime_ms); // Show message for 0.8sec before turning screen black again
    tft_display_message.fillScreen(TFT_BLACK);}
+
+void display_setup_screen(){  // Function for displaying setup screen while setting up controller
+   TFT_eSPI tft_display_setup_screen = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+
+   tft_display_setup_screen.drawCentreString("Setting up",      cntr_x , cntr_y - 45, 4);
+   tft_display_setup_screen.drawCentreString("system",          cntr_x , cntr_y - 10, 4);
+   tft_display_setup_screen.drawCentreString("Please wait...",  cntr_x , cntr_y + 45, 4);
+   tft_display_setup_screen.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);}
+
+void display_reconnecting_screen(){  // Function for displaying setup screen while setting up controller
+   TFT_eSPI tft_display_reconnecting_screen = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+
+   tft_display_reconnecting_screen.drawCentreString("Re-establishing", cntr_x , cntr_y - 45, 4);
+   tft_display_reconnecting_screen.drawCentreString("WiFi connection", cntr_x , cntr_y - 10, 4);
+   tft_display_reconnecting_screen.drawCentreString("Please wait...",  cntr_x , cntr_y + 45, 4);
+   tft_display_reconnecting_screen.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);}
+
+void display_setup_messages(const char* line1, const char* line2, const char* line3){  // Function for displaying setup screen with custom text
+   TFT_eSPI tft_display_reconnecting_screen = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+
+   tft_display_reconnecting_screen.drawCentreString(line1, cntr_x , cntr_y - 45, 4);
+   tft_display_reconnecting_screen.drawCentreString(line2, cntr_x , cntr_y - 10, 4);
+   tft_display_reconnecting_screen.drawCentreString(line3,  cntr_x , cntr_y + 45, 4);
+   tft_display_reconnecting_screen.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);}   
+
+void display_screensaver(int temperature, const char* line1){  // Function for displaying screensaver
+   TFT_eSPI tft_display_screensaver = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+
+   char buffer[10];
+   tft_display_screensaver.drawCentreString(line1, cntr_x , cntr_y - 45, 4);
+   tft_display_screensaver.drawCentreString(itoa(temperature, buffer, 10), cntr_x - 5 , cntr_y+32, 6);
+   tft_display_screensaver.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);
+   tft_display_screensaver.drawCentreString("°C", cntr_x + 50 , cntr_y +40, 4);}
+
+

@@ -1,5 +1,5 @@
-// #ifndef OLED.H
-// #define OLED.H
+//#ifndef OLED.h
+//#define OLED.h
 
 #include <Controller_config.h>
 
@@ -20,5 +20,8 @@ int  mod_val(bool, bool, bool, bool, int);                  // If menu navigatio
 int  mod_temp(bool, bool, int);                             // Function for modifying a temperature value
 void toggle_popup(bool, const char*);
 void display_message(int, char*, char*, char*);             // Function for displaying a message on screen for x milliseconds
-
-// #endif
+void display_setup_screen();                                // Function for displaying setup screen while setting up controller
+void display_reconnecting_screen();                         // Function for displaying WiFi reconnection screen
+void display_setup_messages(const char*, const char*, const char*);  // Function for displaying setup screen with custom text
+void display_screensaver(int, const char*);                 // Function for displaying screensaver
+//#endif

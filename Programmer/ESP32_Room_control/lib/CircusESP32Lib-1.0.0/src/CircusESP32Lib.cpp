@@ -139,7 +139,7 @@ double CircusESP32Lib::read(char *key, char *token) {
 }
 
 char* CircusESP32Lib::waitResponse(int timeout, WiFiClientSecure *client) {
-	static char responsebody[100];
+	static char responsebody[200];
 	for( int i = 0; i < sizeof(responsebody);  ++i )
         	responsebody[i] = (char)0;
 	int j = 0;

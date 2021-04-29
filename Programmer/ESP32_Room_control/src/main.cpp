@@ -23,7 +23,6 @@ Description:
 void IRAM_ATTR ISR();
 // Function for "waking" from screensaver mode
 
-
 // Time
 unsigned long millis_prev           = 0;
 bool          millis_rollover       = LOW;
@@ -31,8 +30,11 @@ bool          millis_rollover       = LOW;
 // Wifi: SSID, Password
   //const char* WIFI_SSID           = "Vik";
   //const char* WIFI_PASSWORD       = "Y897R123";
-const char* WIFI_SSID               = "jorgen";
-const char* WIFI_PASSWORD           = "majones123";
+const char* WIFI_SSID               = "jorgen";                 // Jorgen
+const char* WIFI_PASSWORD           = "majones123";             // Jorgen
+// const char* WIFI_SSID               = "DESKTOP-P40U26J 5521";   // Albertin
+// const char* WIFI_PASSWORD           = "g8X2684+";               // Albertin
+
 bool        wiFi_status             = LOW;
 bool        wiFi_status_prev        = LOW;
 bool        wiFi_status_pos_edge    = LOW;
@@ -41,10 +43,14 @@ unsigned long wiFi_last_connection_attempt_ts = 0;        // Timestamp (millis()
 int         wiFi_reconnection_freq  = 30 * SECOND;        // Try to reconnect every 1 minute
 
 // WiFi: Parameters for CoT
-char        ssid[]                  = "jorgen";
-char        pw[]                    = "majones123";
-const char* WIFI_SSID = "DESKTOP-P40U26J 5521";
-const char* WIFI_PASSWORD = "g8X2684+";
+char        ssid[]                  = "jorgen";                 // Jorgen
+char        pw[]                    = "majones123";             // Jorgen
+// char        ssid[]                  = "DESKTOP-P40U26J 5521";   // Albertin
+// char        pw[]                    = "g8X2684+";               // Albertin
+
+
+//CoT
+bool        cot_operational         = LOW;                // Bool saying if the CoT connection has been established after WiFi loss
 
 // MQTT: ID, server IP, port, topics
 const char* MQTT_CLIENT_ID          = "RC_1";
@@ -64,7 +70,7 @@ MQTT mqtt;
 Mqtt_message mqtt_message;
 StaticJsonDocument<MQTT_MAX_PACKET_SIZE> Json_payload;
 
-/*
+
 void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
     // Concat the payload into a string
     String payload;
@@ -81,8 +87,8 @@ void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
         }
     }
 }
-*/
 
+// MQTT: mal for å sende data
 /*
 mqtt_message.resiver = "Hub";
 mqtt_message.header = Doorbell;
@@ -92,24 +98,22 @@ mqtt_message.data_int[1] = { "key", 10 };
 mqtt.pub(mqtt_message, MQTT_TOPIC, false);
 */
 
+
+
 // Instanciate CircusESP32Lib
 CircusESP32Lib CoT(COT_SERVER, ssid, pw);
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
+String formattedDate;
+String dayStamp;
+String timeStamp;
+
 void setup() {
-  // Set up serial communication
-  Serial.begin(115200); // Serial communication
-  Servo_setup();
-
-
-  // Mqtt setup
-  mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
-
-  // Set up hardware for room controller
-  hw_setup();           // Setup hardware for room controller
   
-  // Serial: Set up serial communication
+  // SERIAL: Set up serial communication
   Serial.begin(115200); // Serial communication
-  
   
   // OLED: Set up initial parameters for SPI control of OLED
   tft_main.init();
@@ -117,13 +121,22 @@ void setup() {
   tft_main.fillScreen(TFT_BLACK);
   tft_main.setTextColor(TFT_SKYBLUE, TFT_BLACK);
   tft_main.setTextSize(1);
-  display_setup_screen();                                 // Activate screen saying "Setting up"
+  display_setup_messages( "Setting up",                   // Activate screen saying "Setting up"
+                          "system", 
+                          "Please wait...");
   delay(READTIME);                                        // Allow user to read message on screen
-  
+
+  // HARDWARE:
+  hw_setup();                                             // Setup hardware for room controller
+
+  // SERVO: 
+  //Servo_setup();
 
   // WiFi: Initial connection attempt
   tft_main.fillScreen(TFT_BLACK);                         // Feedback to user: Connecting WiFi
-  display_setup_messages("Connecting to", "WiFi", "Please wait...");
+  display_setup_messages( "Connecting to",
+                          "WiFi", 
+                          "Please wait...");
   Serial.println("Connecting to Wireless network");
   
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -157,37 +170,89 @@ void setup() {
 
     wiFi_status_prev = HIGH;                              // To avoid controller from setting up WiFi + CoT again in "void loop()"
   }
-  
+
   else{                                                   // Execute if not connected to WiFi
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
-    display_setup_messages( "Connecting to",              // Feedback to user
+    display_setup_messages( "Connecting to",           // Feedback to user
                             "WiFi", 
                             "Failed!");
     delay(READTIME);                                      // Allow user to read screen
-    
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
-    display_setup_messages( "CoT unavailable",            // Feedback to user
+
+    display_setup_messages( "CoT unavailable",           // Feedback to user
                             "at the moment", 
                             "Retry later");
     delay(READTIME);                                      // Allow user to read screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+  }
+
+  // TIME SYSTEM: Read internet time
+  if (WiFi.status() == WL_CONNECTED){                     // Execute if conencted to WiFi
+
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "Connecting to",              // Feedback to user
+                            "time sync server", 
+                            "Please wait...");
+    delay(READTIME);                                      // Allow user to read screen
+
+    timeClient.begin();
+    timeClient.setTimeOffset(3600);                       // Norway = GMT +1 = 3600
+    
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "Connecting to",              // Feedback to user
+                            "time sync server", 
+                            "Connected!");
+    delay(READTIME);                                      // Allow user to read message on screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
   }
   
-  // HARDWARE: Set up hardware for room controller
-  hw_setup();
+  else{                                                   // Execute if not connected to WiFi
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "Time sync server",           // Feedback to user
+                            "unavailable", 
+                            "Retry later");
+    delay(READTIME);                                      // Allow user to read screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+  }
+
+  // MQTT: Set up MQTT communication
+  if (WiFi.status() == WL_CONNECTED){                     // Execute if conencted to WiFi
+
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "Connecting to",              // Feedback to user
+                            "MQTT", 
+                            "Please wait...");
+    delay(READTIME);                                      // Allow user to read screen
+
+    mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
+    
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "Connecting to",              // Feedback to user
+                            "MQTT", 
+                            "Connected!");
+    delay(READTIME);                                      // Allow user to read message on screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+  }
   
-  // MQTT setup
-  // mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
-  
+  else{                                                   // Execute if not connected to WiFi
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "MQTT unavailable",           // Feedback to user
+                            "at the moment", 
+                            "Retry later");
+    delay(READTIME);                                      // Allow user to read screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+  }
+
+  // SETUP: Finished
+  tft_main.fillScreen(TFT_BLACK);                         // Clear screen
+  display_setup_messages( "Setup",                        // Feedback to user
+                          "procedure:", 
+                          "Completed!");
+  delay(READTIME);                                        // Allow user to read screen
+  tft_main.fillScreen(TFT_BLACK);                         // Clear screen
+
   // Instanciate temperature class
   Temperature t{23, 17, 13, 8};
-
-  tft_main.fillScreen(TFT_BLACK);                         // Clear screen
-  display_setup_messages( "Setting up",                        // Feedback to user
-                          "unit:", 
-                          "Completed!");
-  delay(READTIME);                                            // Allow user to read screen
-  tft_main.fillScreen(TFT_BLACK);                         // Clear screen
-
 }
 
 
@@ -207,12 +272,39 @@ void setup() {
         // Temperature menu         (adr 2.2)
         std::vector<std::string> temperature_cathegories{"Temp. adjust", "Weekly plan", "Long absence"};
 
-            // Temp adjust menu       (adr 3.2.1)
+            // Temp adjust menu       (adr 3.2.1 and 4.2.2.x)
             std::vector<std::string> temperature_adjust_cathegories{"Home", "Away", "Night", "Long absence"};
             
             // Weekly plan menu       (adr 3.2.2)
             std::vector<std::string> weekplan_cathegories{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 
+              // Daily plan menu       (adr 4.2.2.x)
+              std::vector<std::string> hour_cathegories{"00.00 - 01.00",
+                                                        "01.00 - 02.00", 
+                                                        "02.00 - 03.00", 
+                                                        "03.00 - 04.00", 
+                                                        "04.00 - 05.00", 
+                                                        "05.00 - 06.00", 
+                                                        "06.00 - 07.00", 
+                                                        "07.00 - 08.00", 
+                                                        "08.00 - 09.00", 
+                                                        "09.00 - 10.00", 
+                                                        "10.00 - 11.00", 
+                                                        "11.00 - 12.00", 
+                                                        "12.00 - 13.00", 
+                                                        "13.00 - 14.00", 
+                                                        "14.00 - 15.00", 
+                                                        "15.00 - 16.00", 
+                                                        "16.00 - 17.00", 
+                                                        "17.00 - 18.00", 
+                                                        "18.00 - 19.00", 
+                                                        "19.00 - 20.00", 
+                                                        "20.00 - 21.00", 
+                                                        "21.00 - 22.00",
+                                                        "22.00 - 23.00",
+                                                        "23.00 - 00.00",};
+            // Temp adjust menu       (adr 3.2.1 and 4.2.2.x)
+            std::vector<std::string> temperature_set_cathegories{"Home", "Away", "Night"};
 
         // Fan menu (3)
         std::vector<std::string> fan_cathegories{"Override auto.", "Fan power"};
@@ -250,6 +342,16 @@ int temperature_read_raw            = 0;                  // Read room temperatu
 int temperature_read_c              = 0;                  // Read room temperature in degrees
 int temperature_read_interval       = 10 * SECOND;        // Set interval for reading room temperature to 10 sec
 unsigned long temperature_read_ts   = 0;                  // Timestamp for last time room temp was read
+int temperature_weekplan[7][24]     = {                   // Two dimensional array defining the week plan
+                                       // 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23     // HO = 1 = Home   ||   NI = 2 = Night   ||   AW = 3 = Away
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Monday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Tuesday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Wednesday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Thursday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Friday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, HO, HO, HO, HO, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, HO, NI},   // Saturday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, HO, HO, HO, HO, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, HO, NI}    // Sunday
+};
 
 // FAN: Variables for fan control
 bool fan_override_auto              = LOW;                // Overriding the automatic program for fan control
@@ -272,7 +374,7 @@ char* adjusted_value_name;                                // Name of the variabl
 // SCREENSAVER
 bool  screensaver                   = LOW;                // Giving signal if user has been inactive and screensaver must be applied
 bool  screensaver_prev              = LOW;                // For compariosn next round anf pos edge detect
-int   screensaver_activate_time     = 30 * SECOND;        // If inactive for more than 20 seconds, activate screensaver
+int   screensaver_activate_time     = 20 * SECOND;        // If inactive for more than 20 seconds, activate screensaver
 int   screensaver_exe_number        = 0;                  // Screensaver execution number. Decides which time-consuming function should be executed the current scan (typically CoT action)
 volatile bool screensaver_interrupt = LOW;
 
@@ -329,13 +431,13 @@ void loop() {
     if (millis() >= temperature_read_ts + temperature_read_interval){ //To avoid reading temperature each cycle
     // Get temp sensor reading
     analogReadResolution(10);
-    temperature_read_raw              = analogRead(pin_temp_sensor);
+    temperature_read_raw            = analogRead(pin_temp_sensor);
 
     // Convert to millivolts
     temperature_read_raw = temperature_read_raw * OUTPUT_MILLIVOLT / 1024; //10 bit resoultion
 
     // Convert to C
-    temperature_read_c = (temperature_read_raw - 500) / 10 + 10;           //https://learn.adafruit.com/tmp36-temperature-sensor
+    temperature_read_c = (temperature_read_raw - 500) / 10 +7;           //https://learn.adafruit.com/tmp36-temperature-sensor
 
     temperature_read_ts = millis();
   }
@@ -372,7 +474,7 @@ void loop() {
     
     attachInterrupt(pin_lft, ISR, RISING);
     attachInterrupt(pin_rgt, ISR, RISING);
-    attachInterrupt(pin_up, ISR, RISING);
+    attachInterrupt(pin_up,  ISR, RISING);
     attachInterrupt(pin_dwn, ISR, RISING);
 
     if (!screensaver_prev){                               // Reset screen if pos edge 
@@ -383,10 +485,6 @@ void loop() {
   else if (!screensaver && screensaver_prev){             // Reset screen before activating a different screen
     tft_main.fillScreen(TFT_BLACK);
   }
-
-  // MQTT loop
-  /////////////////////////////mqtt.keepalive();
-
 
   // WiFi: booleans displaying connection status
   if (WiFi.status() == WL_CONNECTED)        { wiFi_status = HIGH;}
@@ -437,9 +535,26 @@ void loop() {
       display_setup_messages( "Connecting to",            // Feedback to user
                               "CoT", 
                               "Connected!");
+      delay(READTIME);                                    // Allow user to read screen                   
+
+      tft_main.fillScreen(TFT_BLACK);                     // Clear screen
+      display_setup_messages( "Connecting to",            // Feedback to user
+                              "MQTT", 
+                              "Please wait...");
+      delay(READTIME - 1*SECOND);                         // Allow user to read screen
+    }
+
+    mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
+    
+    
+    if (!screensaver){
+      tft_main.fillScreen(TFT_BLACK);                     // Clear screen
+      display_setup_messages( "Connecting to",            // Feedback to user
+                              "MQTT", 
+                              "Connected!");
       delay(READTIME);                                    // Allow user to read screen
       tft_main.fillScreen(TFT_BLACK);                     
-    } 
+    }
   }                          
   
   // WiFi: Attempt to reconnect with given intervals
@@ -464,13 +579,15 @@ void loop() {
   // SCREENSAVER: Background operations when screensaver is activated
   else if (wiFi_status && screensaver){                   // Only operate CoT when screensaver is activated
     
-    Serial.println("      Checking if CoT is operational");
+    // MQTT: loop
+    mqtt.keepalive();
+    
     if (cot_operational){
       
       // Since the CoT communication is incredibly slow, we will only execute one CoT operation per cycle to avoid stalling the rest of the program longer than necessarry
       
       // Reset counter if end if line is reached
-      if (screensaver_exe_number > 15){
+      if (screensaver_exe_number > 16){
         screensaver_exe_number = 0;                              // Reset counter
       }
 
@@ -485,20 +602,21 @@ void loop() {
       else if (screensaver_exe_number == 7)   { cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN);}
       
       // LIGHT: CoT write
-      else if (screensaver_exe_number == 8)   { CoT.write(KEY_LIGHT_TOGGLE,   1000, TOKEN);}
-      else if (screensaver_exe_number == 9)   { CoT.write(KEY_LIGHT_DIMMING,  1000, TOKEN);}
+      else if (screensaver_exe_number == 8)   { CoT.write(KEY_LIGHT_TOGGLE,   roomlight_state,    TOKEN);}
+      else if (screensaver_exe_number == 9)   { CoT.write(KEY_LIGHT_DIMMING,  roomlight_intensity_percentage, TOKEN);}
       
       // TEMPERATURE: CoT write
-      else if (screensaver_exe_number == 10)  { CoT.write(KEY_TEMP_HOME,      1000, TOKEN);}
-      else if (screensaver_exe_number == 11)  { CoT.write(KEY_TEMP_AWAY,      1000, TOKEN);}
-      else if (screensaver_exe_number == 12)  { CoT.write(KEY_TEMP_NIGHT,     1000, TOKEN);}
-      else if (screensaver_exe_number == 13)  { CoT.write(KEY_TEMP_LONG_ABS,  1000, TOKEN);}
+      else if (screensaver_exe_number == 10)  { CoT.write(KEY_TEMP_HOME,      temperatures[0],    TOKEN);}
+      else if (screensaver_exe_number == 11)  { CoT.write(KEY_TEMP_AWAY,      temperatures[1],    TOKEN);}
+      else if (screensaver_exe_number == 12)  { CoT.write(KEY_TEMP_NIGHT,     temperatures[2],    TOKEN);}
+      else if (screensaver_exe_number == 13)  { CoT.write(KEY_TEMP_LONG_ABS,  temperatures[3],    TOKEN);}
+      else if (screensaver_exe_number == 14)  { CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN);}
       
       // FAN: CoT write
-      else if (screensaver_exe_number == 14)  { CoT.write(KEY_FAN_POWER,      1000, TOKEN);}
+      else if (screensaver_exe_number == 15)  { CoT.write(KEY_FAN_POWER,      14, TOKEN);}
 
       // AIRING
-      else if (screensaver_exe_number == 15)  { CoT.write(KEY_AIRING_OPENING, 1000, TOKEN);}
+      else if (screensaver_exe_number == 16)  { CoT.write(KEY_AIRING_OPENING, 15, TOKEN);}
 
       screensaver_exe_number ++;                                 // Incrememt item number each cycle
     }
@@ -630,11 +748,36 @@ void loop() {
                                                 temperature_set = temperatures[temperature_profile];
                                                 temperature_set = mod_temp(pos_edge_up, pos_edge_dwn, temperature_set);
                                                 temp_adjust = HIGH;}
+
+          else if     (menu_adress[2] == 2)   { current_vector = hour_cathegories;}                // 4.2.2    - Daily plan                    
+              
       }
   } 
+
+  // Menu level 5
+  else if             (menu_adress[0] == 5)   {                                                  // 5
+      if              (menu_adress[1] == 2)   {                                                  // 5.2       - TEMPERATURE
+          if          (menu_adress[2] == 2)   { current_vector = temperature_set_cathegories;    // 5.2.2     - Daily plan
+          }      
+      }
+  }
+
+  // Menu level 6
+  else if             (menu_adress[0] == 6)   {                                                  // 6
+      if              (menu_adress[1] == 2)   {                                                  // 6.2       - TEMPERATURE
+          if          (menu_adress[2] == 2)   {                                                  // 6.2.2     - Daily plan
+                                                temperature_weekplan[(menu_adress[3]-1)][(menu_adress[4]-1)] = (menu_adress[5]); 
+                                                menu_lvl = 5;
+                                                menu_adress[0] = 5;
+                                                current_lvl_val = 6;
+          }        
+      }
+  }  
   
+  // Menu lvl
+
   // MENU: Display the menu decided by the menu adressing
-  
+
   if (menu_adress != prev_menu_adress){                   // Refresh screen if menu adress has been changed (to avoid duplicated menu items) 
     tft_main.fillScreen(TFT_BLACK);}
 
@@ -645,13 +788,21 @@ void loop() {
     temperatures[temperature_profile] = temperature_set;
     temp_adjust_window(temperatures[temperature_profile], "Temperature");
   }
+  
+  // WEEKPLAN
+  else if(  (menu_adress[0]==5)                            // 5 (6 sybolises that value has been chosen)
+          &&(menu_adress[1]==2)                            // 5.2
+          &&(menu_adress[2]==2)                            // 5.2.2  - Daily plan
+          &&(!screensaver)){
+    display_weekplan_setting(menu_adress[menu_adress[0]], temperature_weekplan[(menu_adress[3]-1)][(menu_adress[4]-1)], current_vector);
+  }
 
   else if(!screensaver){                                  // If no "special" window needs to be displayed, display menu with correct cathegories
     display_menu(current_lvl_val, current_vector);}
   
 
   // MENU: Check if last item in menu is reached. If so, it is not possible to scroll further down
-  if (menu_adress[menu_lvl] == current_vector.size()){
+  if (menu_adress[menu_adress[0]] == current_vector.size()){ // Was menu_lvl in stead of menu_adress[0]
     bottom_reached = HIGH;}
   else {
     bottom_reached = LOW;}
@@ -674,10 +825,10 @@ void loop() {
   
   // LIGHT: Set light intensity based on input variables
   if ((roomlight_state) && (roomlight_dutycycle > 10)){       // Toggle ON (set 10 as lowest value to avoid glowing bulb)
-    ledcWrite(CH1, roomlight_dutycycle);}
+    ledcWrite(CHANNEL_LED, roomlight_dutycycle);}
     //digitalWrite(pin_LED_room, HIGH);}
   else{                                                       // Toggle OFF
-    ledcWrite(CH1, 0);}
+    ledcWrite(CHANNEL_LED, 0);}
 
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
@@ -689,10 +840,6 @@ void loop() {
   if (wiFi_status && screensaver)    {                    // Only operate CoT when screensaver is activated
 
   }
-
-
- 
-
 
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
@@ -719,7 +866,6 @@ void loop() {
   cot_fan_power_prev      = cot_fan_power;            // Fan          - power
   cot_airing_opening_prev = cot_airing_opening;       // Aiting       - opening (degrees)
 
-  
   // TIME
   millis_prev = millis();
 
@@ -738,46 +884,20 @@ void loop() {
     detachInterrupt(pin_rgt);
   }
 
+  Serial.println(temperature_weekplan[1][1]);
 }
 
 void IRAM_ATTR ISR(){                                 // Function for "waking" from screensaver mode.
   screensaver_interrupt   = HIGH;
-
 }
 
 RTC_DATA_ATTR int x = 0;  // Variable saved even when in deep sleep
 
 
 
-
-
-  
-  
-  if ((roomlight_state) && (roomlight_dutycycle > 6)){                       // Toggle ON
-    ledcWrite(CH1, roomlight_dutycycle);
-  }
-  else{                                       // Toggle OFF
-    ledcWrite(CH1, 0);
-  }
-  
-  // Just checking how sensor reacts to LED
-  #ifdef DEBUB
-  Serial.print("Roomlight intensity mesured: ");
-  Serial.println(roomlight_intensity_measured);
-  Serial.print("Roomlight intensity requested dimmed: ");
-  Serial.println(roomlight_intensity_requested_dimmed);
-  Serial.print("Roomlight intensity setpoint: ");
-  Serial.println(roomlight_setpoint_intensity);
-  Serial.print("Roomlight duty cycle: ");
-  Serial.println(roomlight_dutycycle);
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
+#ifdef DEBUB
+ 
 #endif
-  delay(50);
   
 
 

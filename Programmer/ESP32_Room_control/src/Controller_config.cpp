@@ -16,7 +16,7 @@ void hw_setup(){
     pinMode(pin_LED_room, OUTPUT);
 
     analogReadResolution(8);
-    ledcSetup(CH1, 5000, 8);
-    ledcAttachPin(pin_LED_room, CH1);
+    ledcSetup(CHANNEL_LED, 5000, 8);
+    ledcAttachPin(pin_LED_room, CHANNEL_LED);
 }
 

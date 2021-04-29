@@ -12,7 +12,7 @@
 #define rect_h 50       // Menu rectangle height
 #define rect_in 20      // Indentation for menu rectangle
 
-void menu_icon(int, int, std::string);                      // Function drawing a single menu icon. Must be called for all "buttons" in a menu
+void menu_icon(int, int, std::string, int, int);                 // Function drawing a single menu icon. Must be called for all "buttons" in a menu
 void val_adjust_window(int, const char*);                   // Function drawing a window dedicated to adjusting values (typically altering a percentage value)
 void temp_adjust_window(int , const char*);
 void display_menu(int, std::vector<std::string>);           // Displays one complete menu page
@@ -24,4 +24,5 @@ void display_setup_screen();                                // Function for disp
 void display_reconnecting_screen();                         // Function for displaying WiFi reconnection screen
 void display_setup_messages(const char*, const char*, const char*);  // Function for displaying setup screen with custom text
 void display_screensaver(int, const char*);                 // Function for displaying screensaver
+void display_weekplan_setting(int, int, std::vector<std::string>);
 //#endif

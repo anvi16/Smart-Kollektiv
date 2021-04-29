@@ -7,7 +7,7 @@
     #define MINUTE              60  *SECOND
     #define HOUR                60  *MINUTE
     #define DAY                 24  *HOUR
-    #define READTIME            3   *SECOND
+    #define READTIME            1   *SECOND // should be 3
 
 // Controller constants
     #define OUTPUT_MILLIVOLT    3300
@@ -16,7 +16,9 @@
     
     // Pins - (Since ADC2 is busy with WiFi, pins  0, 2, 4, 12, 13, 14, 15, 25, 26, 27 are thereby are incapable of ADC.)
     #define pin_heating_LED     12    
-    #define pin_up              14   
+    #define pin_up              14
+    #define pin_fan             21
+    #define pin_servo           22
     #define pin_lft             25
     #define pin_rgt             26
     #define pin_dwn             27
@@ -25,7 +27,7 @@
     #define pin_light_sensor    35
     
     // PWM
-    #define CH1                 1
+    #define CHANNEL_LED         1
     #define CH2                 2       
     #define CH3                 3   
  
@@ -52,8 +54,13 @@
     #define KEY_AIRING_OPENING  "16586"
 //
 
+// Temperature
+    #define HO                   1       // Home
+    #define AW                   2       // Night
+    #define NI                   3       // Away
+//
 
-
+#include <Arduino.h>
 #include <vector>               // Vector library
 #include <iostream>
 #include <stdlib.h>             // Library containing std namespace functions
@@ -62,6 +69,8 @@
 #include <SPI.h>                // TFT_eSPI is based on this library
 #include <TFT_eSPI.h>           // Library for controlling OLED
 #include <CircusESP32Lib.h>     // Library for Circus of Things (CoT)
+#include <NTPClient.h>          // Library for Network Time Protocol client
+#include <WiFiUdp.h>
 
 
 // Pre-declare functions

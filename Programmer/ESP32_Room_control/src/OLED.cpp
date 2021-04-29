@@ -2,20 +2,21 @@
 #include "Controller_config.h"
 
 // Function drawing a single menu icon. Must be called for all "buttons" in a menu
-void menu_icon(int item_number, int selected_number, std::string item_name){
-    
-    int my_loc = (item_number - selected_number);  // Location of current item
-    TFT_eSPI().setTextSize(1);
+void menu_icon(int item_number, int current_number, std::string item_name, int sel_color, int selected_number){
+    TFT_eSPI tft_menu_icon = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
 
-    TFT_eSPI().drawCentreString(item_name.c_str(), cntr_x , cntr_y + my_loc*space_y, 4);
-    TFT_eSPI().drawRoundRect(rect_in, cntr_x - (rect_h/2) + my_loc*space_y, rect_w, rect_h, 10, TFT_SKYBLUE);
+    int my_loc = (item_number - current_number);  // Location of current item
+    tft_menu_icon.setTextSize(1);
+
+    tft_menu_icon.drawCentreString(item_name.c_str(), cntr_x , cntr_y + my_loc*space_y, 4);
+    tft_menu_icon.drawRoundRect(rect_in, cntr_x - (rect_h/2) + my_loc*space_y, rect_w, rect_h, 10, TFT_SKYBLUE);
 
     if (selected_number == item_number){
         // Highlight frame if selected
-        TFT_eSPI().drawRoundRect(rect_in+2, cntr_x-(rect_h/2)+2 + my_loc*space_y, rect_w - 4 , rect_h -4, 10, TFT_WHITE);
-        TFT_eSPI().drawRoundRect(rect_in+1, cntr_x-(rect_h/2)+1 + my_loc*space_y, rect_w - 2 , rect_h -2, 10, TFT_WHITE);
-        TFT_eSPI().drawRoundRect(rect_in-1, cntr_x-(rect_h/2)-1 + my_loc*space_y, rect_w + 2 , rect_h +2, 10, TFT_WHITE);
-        TFT_eSPI().drawRoundRect(rect_in-2, cntr_x-(rect_h/2)-2 + my_loc*space_y, rect_w + 4 , rect_h +4, 10, TFT_WHITE);
+        tft_menu_icon.drawRoundRect(rect_in+2, cntr_x-(rect_h/2)+2 + my_loc*space_y, rect_w - 4 , rect_h -4, 10, sel_color);
+        tft_menu_icon.drawRoundRect(rect_in+1, cntr_x-(rect_h/2)+1 + my_loc*space_y, rect_w - 2 , rect_h -2, 10, sel_color);
+        tft_menu_icon.drawRoundRect(rect_in-1, cntr_x-(rect_h/2)-1 + my_loc*space_y, rect_w + 2 , rect_h +2, 10, sel_color);
+        tft_menu_icon.drawRoundRect(rect_in-2, cntr_x-(rect_h/2)-2 + my_loc*space_y, rect_w + 4 , rect_h +4, 10, sel_color);
     }
 }
 
@@ -77,7 +78,7 @@ void display_menu(int level_val, std::vector<std::string> item_vector){
   
   int vector_len = item_vector.size();          // Find amount of elements in vector
   for (int i = 0; i < vector_len; i++){         // Draw to OLED one box with the respective menu item for each menu item in the vector
-    menu_icon(i+1, level_val, item_vector[i]);  
+    menu_icon(i+1, level_val, item_vector[i], TFT_SKYBLUE, level_val);  
   }
 }
 
@@ -125,7 +126,6 @@ int mod_temp(bool pos_edge_up, bool pos_edge_dwn, int value){
   return value;
 }
 
-
 void display_message(int displaytime_ms, char* line1, char* line2, char* line3){  // Function for displaying a message on screen for x milliseconds
    TFT_eSPI tft_display_message = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
 
@@ -171,3 +171,45 @@ void display_screensaver(int temperature, const char* line1){  // Function for d
    tft_display_screensaver.drawCentreString("°C", cntr_x + 50 , cntr_y +40, 4);}
 
 
+// Function for displaying a complete menu based on a vector containing cathegories
+void display_weekplan_setting(int level_val, int sel_icon, std::vector<std::string> item_vector){   // sel_lvl = selected level (pops out in green or blue)
+  
+  TFT_eSPI tft_display_weekplan_mode = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+  
+  int vector_len = item_vector.size();          // Find amount of elements in vector
+  for (int i = 0; i < vector_len; i++){         // Draw to OLED one box with the respective menu item for each menu item in the vector
+    menu_icon(i+1, level_val, item_vector[i],TFT_BLUE, sel_icon);  
+  };
+  tft_display_weekplan_mode.fillTriangle(5,123, 5,117, 15,120, TFT_SKYBLUE);
+
+}
+
+
+
+
+
+
+
+
+
+/*
+// Function drawing a single menu icon. Must be called for all "buttons" in a menu
+void menu_icon(int item_number, int selected_number, std::string item_name, int sel_color){
+    TFT_eSPI tft_menu_icon = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+
+    int my_loc = (item_number - selected_number);  // Location of current item
+    tft_menu_icon.setTextSize(1);
+
+    tft_menu_icon.drawCentreString(item_name.c_str(), cntr_x , cntr_y + my_loc*space_y, 4);
+    tft_menu_icon.drawRoundRect(rect_in, cntr_x - (rect_h/2) + my_loc*space_y, rect_w, rect_h, 10, TFT_SKYBLUE);
+
+    if (selected_number == item_number){
+        // Highlight frame if selected
+        tft_menu_icon.drawRoundRect(rect_in+2, cntr_x-(rect_h/2)+2 + my_loc*space_y, rect_w - 4 , rect_h -4, 10, sel_color);
+        tft_menu_icon.drawRoundRect(rect_in+1, cntr_x-(rect_h/2)+1 + my_loc*space_y, rect_w - 2 , rect_h -2, 10, sel_color);
+        tft_menu_icon.drawRoundRect(rect_in-1, cntr_x-(rect_h/2)-1 + my_loc*space_y, rect_w + 2 , rect_h +2, 10, sel_color);
+        tft_menu_icon.drawRoundRect(rect_in-2, cntr_x-(rect_h/2)-2 + my_loc*space_y, rect_w + 4 , rect_h +4, 10, sel_color);
+    }
+}
+
+*/

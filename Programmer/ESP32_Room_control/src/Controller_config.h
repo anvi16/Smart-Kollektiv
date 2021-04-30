@@ -71,6 +71,8 @@
 #include <CircusESP32Lib.h>     // Library for Circus of Things (CoT)
 #include <NTPClient.h>          // Library for Network Time Protocol client
 #include <WiFiUdp.h>
+#include <TimeLib.h>
+#include <time.h>
 
 
 // Pre-declare functions

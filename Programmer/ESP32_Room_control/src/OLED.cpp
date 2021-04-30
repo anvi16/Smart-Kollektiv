@@ -161,15 +161,80 @@ void display_setup_messages(const char* line1, const char* line2, const char* li
    tft_display_reconnecting_screen.drawCentreString(line3,  cntr_x , cntr_y + 45, 4);
    tft_display_reconnecting_screen.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);}   
 
-void display_screensaver(int temperature, const char* line1){  // Function for displaying screensaver
-   TFT_eSPI tft_display_screensaver = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+void display_screensaver(int temperature, const char* line1, int omm, int oss){  // Function for displaying screensaver
+  TFT_eSPI tft_display_screensaver = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
+  int item = 0;
 
-   char buffer[10];
-   tft_display_screensaver.drawCentreString(line1, cntr_x , cntr_y - 45, 4);
-   tft_display_screensaver.drawCentreString(itoa(temperature, buffer, 10), cntr_x - 5 , cntr_y+32, 6);
-   tft_display_screensaver.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);
-   tft_display_screensaver.drawCentreString("°C", cntr_x + 50 , cntr_y +40, 4);}
+  if (second() != oss){   // Clear screen every second
+    tft_display_screensaver.fillScreen(TFT_BLACK);                                     // Clear screen every minute                                                                
+  }
 
+  // Interval of 10 seconds between toggle from 
+  if      ((second() >= 0)  && (second() < 10)){item = 0;}
+  else if ((second() >= 10) && (second() < 20)){item = 1;}
+  else if ((second() >= 20) && (second() < 30)){item = 0;}
+  else if ((second() >= 30) && (second() < 40)){item = 1;}
+  else if ((second() >= 40) && (second() < 50)){item = 0;}
+  else if ((second() >= 50) && (second() < 60)){item = 1;}
+
+  std::vector<std::string>weekdays{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
+  int week_day = weekday() -1;  // -1 because 1-indexed
+
+  int xpos = 55;
+  int ypos = 90;
+
+  int hh    = hour();
+  int mm    = minute();
+  int DD    = day();
+  int MM    = month();
+  int YYYY  = year();
+
+  // FRAME
+  tft_display_screensaver.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);
+
+  // WEEKDAY
+  tft_display_screensaver.drawCentreString(weekdays[week_day].c_str(), cntr_x, 60, 4);
+
+
+  // DATE
+
+  if (DD < 10){ xpos += tft_display_screensaver.drawChar  ('0', xpos, ypos, 4);}          // Add hours leading zero for 24 hr clock // Copied from TFT_eSPI example code
+                xpos += tft_display_screensaver.drawNumber(DD,  xpos, ypos, 4);           // Draw day
+
+                xpos += tft_display_screensaver.drawChar  ('-', xpos, ypos, 4);
+  if (MM < 10){ xpos += tft_display_screensaver.drawChar  ('0', xpos, ypos, 4);}          // Add hours leading zero for 24 hr clock // Copied from TFT_eSPI example code
+                xpos += tft_display_screensaver.drawNumber(MM,  xpos, ypos, 4);           // Draw month
+
+                xpos += tft_display_screensaver.drawChar  ('-', xpos, ypos, 4);
+                xpos += tft_display_screensaver.drawNumber(YYYY,xpos, ypos, 4);           // Draw year
+
+
+  if (item == 1){
+    // Clock
+    xpos = 55;  // Redefine xpos because has incremented during showing date
+    tft_display_screensaver.setTextSize(2);
+    if (hh < 10){ xpos += tft_display_screensaver.drawChar  ('0', xpos, cntr_y+25, 4);}   // Add hours leading zero for 24 hr clock // Copied from TFT_eSPI example code
+                  xpos += tft_display_screensaver.drawNumber(hh,  xpos, cntr_y+25, 4);    // Draw hours
+                  xpos += tft_display_screensaver.drawChar  (':', xpos, cntr_y+25, 4);
+    if (mm < 10){ xpos += tft_display_screensaver.drawChar  ('0', xpos, cntr_y+25, 4);}   // Add minutes leading zero
+                  xpos += tft_display_screensaver.drawNumber(mm,  xpos, cntr_y+25, 4);    // Draw minutes
+  }
+
+  else{                                                                                 // Display Temperature
+    // Temperature
+    char buffer[10];
+    //tft_display_screensaver.drawCentreString(line1, cntr_x , cntr_y - 25, 4);
+    tft_display_screensaver.drawCentreString(itoa(temperature, buffer, 10), cntr_x - 30 , cntr_y +25, 6);
+    tft_display_screensaver.drawCentreString("o", cntr_x + 10 , cntr_y +20, 4);
+    tft_display_screensaver.setTextSize(2);
+    tft_display_screensaver.drawCentreString("C", cntr_x + 40 , cntr_y +25, 4);
+  }
+} 
+   
+
+
+   
 
 // Function for displaying a complete menu based on a vector containing cathegories
 void display_weekplan_setting(int level_val, int sel_icon, std::vector<std::string> item_vector){   // sel_lvl = selected level (pops out in green or blue)
@@ -184,32 +249,26 @@ void display_weekplan_setting(int level_val, int sel_icon, std::vector<std::stri
 
 }
 
+  
+  /*
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.print(weekday());
+  Serial.print(" - ");
+  
+  Serial.print(year());
+  Serial.print("-");
+  Serial.print(month());
+  Serial.print("-");
+  Serial.print(day());
+  Serial.print(" : ");
+  Serial.print(hour());
+  Serial.print(":");
+  Serial.print(minute());
+  Serial.print(":");
+  Serial.println(second());
+  */
 
 
-
-
-
-
-
-
-/*
-// Function drawing a single menu icon. Must be called for all "buttons" in a menu
-void menu_icon(int item_number, int selected_number, std::string item_name, int sel_color){
-    TFT_eSPI tft_menu_icon = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
-
-    int my_loc = (item_number - selected_number);  // Location of current item
-    tft_menu_icon.setTextSize(1);
-
-    tft_menu_icon.drawCentreString(item_name.c_str(), cntr_x , cntr_y + my_loc*space_y, 4);
-    tft_menu_icon.drawRoundRect(rect_in, cntr_x - (rect_h/2) + my_loc*space_y, rect_w, rect_h, 10, TFT_SKYBLUE);
-
-    if (selected_number == item_number){
-        // Highlight frame if selected
-        tft_menu_icon.drawRoundRect(rect_in+2, cntr_x-(rect_h/2)+2 + my_loc*space_y, rect_w - 4 , rect_h -4, 10, sel_color);
-        tft_menu_icon.drawRoundRect(rect_in+1, cntr_x-(rect_h/2)+1 + my_loc*space_y, rect_w - 2 , rect_h -2, 10, sel_color);
-        tft_menu_icon.drawRoundRect(rect_in-1, cntr_x-(rect_h/2)-1 + my_loc*space_y, rect_w + 2 , rect_h +2, 10, sel_color);
-        tft_menu_icon.drawRoundRect(rect_in-2, cntr_x-(rect_h/2)-2 + my_loc*space_y, rect_w + 4 , rect_h +4, 10, sel_color);
-    }
-}
-
-*/
+ 

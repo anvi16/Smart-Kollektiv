@@ -5,6 +5,10 @@ Version: v1.0	14/04/2021
 
 Description: 
   Room controller
+
+Resp: 
+  Jorgen Andreas Mo
+
 *************************************************/
 
 // Since CoT operates very slowly, the controller will only r/w to/from CoT when in screensaver mode.
@@ -26,6 +30,11 @@ void IRAM_ATTR ISR();
 // Time
 unsigned long millis_prev           = 0;
 bool          millis_rollover       = LOW;
+const long    utcOffsetInSeconds    = 2 * 3600;
+char          daysOfTheWeek[7][12]  = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+int           time_mm_prev          = 0;
+int           time_ss_prev          = 0;
+
 
 // Wifi: SSID, Password
   //const char* WIFI_SSID           = "Vik";
@@ -70,6 +79,11 @@ MQTT mqtt;
 Mqtt_message mqtt_message;
 StaticJsonDocument<MQTT_MAX_PACKET_SIZE> Json_payload;
 
+// Instanciate CircusESP32Lib
+CircusESP32Lib CoT(COT_SERVER, ssid, pw);
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
 void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
     // Concat the payload into a string
@@ -88,6 +102,7 @@ void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
     }
 }
 
+
 // MQTT: mal for å sende data
 /*
 mqtt_message.resiver = "Hub";
@@ -99,16 +114,6 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
 */
 
 
-
-// Instanciate CircusESP32Lib
-CircusESP32Lib CoT(COT_SERVER, ssid, pw);
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
-
-String formattedDate;
-String dayStamp;
-String timeStamp;
 
 void setup() {
   
@@ -195,9 +200,17 @@ void setup() {
                             "Please wait...");
     delay(READTIME);                                      // Allow user to read screen
 
+
     timeClient.begin();
-    timeClient.setTimeOffset(3600);                       // Norway = GMT +1 = 3600
-    
+    timeClient.update();                                  // Set new system time
+    setTime(timeClient.getHours(),                         
+            timeClient.getMinutes(), 
+            timeClient.getSeconds(), 
+            timeClient.getFormattedDate().substring(8,10).toInt(),    // DAY
+            timeClient.getFormattedDate().substring(5,7).toInt(),     // MONTH
+            timeClient.getFormattedDate().substring(0,4).toInt() );   // YEAR
+
+
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
     display_setup_messages( "Connecting to",              // Feedback to user
                             "time sync server", 
@@ -434,12 +447,12 @@ void loop() {
     temperature_read_raw            = analogRead(pin_temp_sensor);
 
     // Convert to millivolts
-    temperature_read_raw = temperature_read_raw * OUTPUT_MILLIVOLT / 1024; //10 bit resoultion
+    temperature_read_raw            = temperature_read_raw * OUTPUT_MILLIVOLT / 1024; //10 bit resoultion
 
     // Convert to C
-    temperature_read_c = (temperature_read_raw - 500) / 10 +7;           //https://learn.adafruit.com/tmp36-temperature-sensor
+    temperature_read_c              = (temperature_read_raw - 500) / 10 +6; //https://learn.adafruit.com/tmp36-temperature-sensor
 
-    temperature_read_ts = millis();
+    temperature_read_ts             = millis();
   }
   // NAVIGATION: Read navigation pushbuttons
   buttonstate_up                    = digitalRead(pin_up);
@@ -472,7 +485,7 @@ void loop() {
   // SCREENSAVER: 
   if (screensaver){
     
-    attachInterrupt(pin_lft, ISR, RISING);
+    attachInterrupt(pin_lft, ISR, RISING);                // Attach interrupts to pushbuttons to be able to wake up
     attachInterrupt(pin_rgt, ISR, RISING);
     attachInterrupt(pin_up,  ISR, RISING);
     attachInterrupt(pin_dwn, ISR, RISING);
@@ -480,7 +493,9 @@ void loop() {
     if (!screensaver_prev){                               // Reset screen if pos edge 
       tft_main.fillScreen(TFT_BLACK);}                    
     
-    display_screensaver(temperature_read_c, "Current temp.");
+    display_screensaver(temperature_read_c, "", time_mm_prev, time_ss_prev);
+    time_mm_prev = minute();
+    time_ss_prev = second();
   }
   else if (!screensaver && screensaver_prev){             // Reset screen before activating a different screen
     tft_main.fillScreen(TFT_BLACK);
@@ -587,7 +602,7 @@ void loop() {
       // Since the CoT communication is incredibly slow, we will only execute one CoT operation per cycle to avoid stalling the rest of the program longer than necessarry
       
       // Reset counter if end if line is reached
-      if (screensaver_exe_number > 16){
+      if (screensaver_exe_number > 17){
         screensaver_exe_number = 0;                              // Reset counter
       }
 
@@ -617,6 +632,15 @@ void loop() {
 
       // AIRING
       else if (screensaver_exe_number == 16)  { CoT.write(KEY_AIRING_OPENING, 15, TOKEN);}
+
+      else if (screensaver_exe_number == 17)  { timeClient.update();
+                                                setTime(timeClient.getHours(),                            // Set new system time
+                                                        timeClient.getMinutes(), 
+                                                        timeClient.getSeconds(), 
+                                                        timeClient.getFormattedDate().substring(8,10).toInt(),     // DAY
+                                                        timeClient.getFormattedDate().substring(5,7).toInt(),     // MONTH
+                                                        timeClient.getFormattedDate().substring(0,4).toInt());    // YEAR
+      }
 
       screensaver_exe_number ++;                                 // Incrememt item number each cycle
     }
@@ -824,10 +848,9 @@ void loop() {
     roomlight_dutycycle -=5;}
   
   // LIGHT: Set light intensity based on input variables
-  if ((roomlight_state) && (roomlight_dutycycle > 10)){       // Toggle ON (set 10 as lowest value to avoid glowing bulb)
+  if ((roomlight_state) && (roomlight_dutycycle > 10)){   // Toggle ON (set 10 as lowest value to avoid glowing bulb)
     ledcWrite(CHANNEL_LED, roomlight_dutycycle);}
-    //digitalWrite(pin_LED_room, HIGH);}
-  else{                                                       // Toggle OFF
+  else{                                                   // Toggle OFF
     ledcWrite(CHANNEL_LED, 0);}
 
   /////////////////////////////////////////////////////////////////////////////////////
@@ -868,6 +891,7 @@ void loop() {
 
   // TIME
   millis_prev = millis();
+  
 
   // SCREENSAVER
   screensaver_prev = screensaver;
@@ -883,11 +907,9 @@ void loop() {
     detachInterrupt(pin_lft);
     detachInterrupt(pin_rgt);
   }
-
-  Serial.println(temperature_weekplan[1][1]);
 }
 
-void IRAM_ATTR ISR(){                                 // Function for "waking" from screensaver mode.
+void IRAM_ATTR ISR(){                                 // ISR function for "waking" from screensaver mode.
   screensaver_interrupt   = HIGH;
 }
 

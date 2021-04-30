@@ -23,6 +23,6 @@ void display_message(int, char*, char*, char*);             // Function for disp
 void display_setup_screen();                                // Function for displaying setup screen while setting up controller
 void display_reconnecting_screen();                         // Function for displaying WiFi reconnection screen
 void display_setup_messages(const char*, const char*, const char*);  // Function for displaying setup screen with custom text
-void display_screensaver(int, const char*);                 // Function for displaying screensaver
+void display_screensaver(int, const char*, int, int);                 // Function for displaying screensaver
 void display_weekplan_setting(int, int, std::vector<std::string>);
 //#endif

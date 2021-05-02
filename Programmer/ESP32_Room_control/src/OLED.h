@@ -18,11 +18,12 @@ void temp_adjust_window(int , const char*);
 void display_menu(int, std::vector<std::string>);           // Displays one complete menu page
 int  mod_val(bool, bool, bool, bool, int);                  // If menu navigation, val_adj = LOW, if value adjustment +/- 5%, val_adj = HIGH   
 int  mod_temp(bool, bool, int);                             // Function for modifying a temperature value
+int  mod_window(bool, bool, int);                             // Function for modifying a temperature value
 void toggle_popup(bool, const char*);
 void display_message(int, char*, char*, char*);             // Function for displaying a message on screen for x milliseconds
 void display_setup_screen();                                // Function for displaying setup screen while setting up controller
 void display_reconnecting_screen();                         // Function for displaying WiFi reconnection screen
 void display_setup_messages(const char*, const char*, const char*);  // Function for displaying setup screen with custom text
-void display_screensaver(int, const char*, int, int);                 // Function for displaying screensaver
+void display_screensaver(int, const char*, int);                 // Function for displaying screensaver
 void display_weekplan_setting(int, int, std::vector<std::string>);
 //#endif

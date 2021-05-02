@@ -16,34 +16,32 @@ Resp:
 #include "Controller_config.h"
 #include "OLED.h"
 #include "Peripherals.h"
-#include "ClassTest.h"
+#include "RoomControl.h"
 #include "../lib/MQTT/MQTT_Class.h"
-#include "Servo.h"
+//#include "Servo.h"
 
 //#define DEBUG
 
-// INTERRUPT: 
-
+// INTERRUPT: Function for "waking" from screensaver mode
 void IRAM_ATTR ISR();
-// Function for "waking" from screensaver mode
 
-// Time
+// MQTT: Predeclare func 
+void Mqtt_callback(char* , byte* , unsigned int);
+
+// TIME
 unsigned long millis_prev           = 0;
 bool          millis_rollover       = LOW;
 const long    utcOffsetInSeconds    = 2 * 3600;
 char          daysOfTheWeek[7][12]  = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-int           time_mm_prev          = 0;
 int           time_ss_prev          = 0;
 
-
-// Wifi: SSID, Password
+// WiFi: SSID, Password
   //const char* WIFI_SSID           = "Vik";
   //const char* WIFI_PASSWORD       = "Y897R123";
 const char* WIFI_SSID               = "jorgen";                 // Jorgen
 const char* WIFI_PASSWORD           = "majones123";             // Jorgen
 // const char* WIFI_SSID               = "DESKTOP-P40U26J 5521";   // Albertin
 // const char* WIFI_PASSWORD           = "g8X2684+";               // Albertin
-
 bool        wiFi_status             = LOW;
 bool        wiFi_status_prev        = LOW;
 bool        wiFi_status_pos_edge    = LOW;
@@ -57,6 +55,37 @@ char        pw[]                    = "majones123";             // Jorgen
 // char        ssid[]                  = "DESKTOP-P40U26J 5521";   // Albertin
 // char        pw[]                    = "g8X2684+";               // Albertin
 
+// ID
+int         id_room                 = 0;                  // Declare variable for which room the controller should be configured for (0 = NaN)
+std::vector<std::string> id_room_list   { "Dormroom 1",   // Rooms in house to be displayed on OLED when asking which room controller should be configured for.
+                                          "Dormroom 2", 
+                                          "Dormroom 3", 
+                                          "Dormroom 4", 
+                                          "Dormroom 5", 
+                                          "Dormroom 6", 
+                                          "Livingroom", 
+                                          "Kitchen", 
+                                          "Bathroom", 
+                                          "Entry"
+};
+
+// NAVIGATION
+int current_lvl_val                 = 0;                  // Value for "display_menu" function, so it knows which element is active
+int menu_lvl                        = 0;  
+bool bottom_reached                 = LOW;                // Variable giving feedback if bottom button in menu is reached
+
+// NAVIGATION: Declare and set initial button states 
+bool  buttonstate_up, buttonstate_dwn, buttonstate_lft, buttonstate_rgt;   // Declare values representing button states
+
+bool  prev_buttonstate_up           = LOW;
+bool  prev_buttonstate_dwn          = LOW;
+bool  prev_buttonstate_lft          = LOW;
+bool  prev_buttonstate_rgt          = LOW;
+
+bool  pos_edge_up                   = LOW;
+bool  pos_edge_dwn                  = LOW;
+bool  pos_edge_lft                  = LOW;
+bool  pos_edge_rgt                  = LOW;
 
 //CoT
 bool        cot_operational         = LOW;                // Bool saying if the CoT connection has been established after WiFi loss
@@ -85,35 +114,11 @@ CircusESP32Lib CoT(COT_SERVER, ssid, pw);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
-void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
-    // Concat the payload into a string
-    String payload;
-    for (uint8_t i = 0; i < p_length; i++) {
-        payload.concat((char)p_payload[i]);
-    }
-    Serial.println(payload);
+// ROOM CONTROL - Instanciate object
+RoomControl roomControl;
 
-    deserializeJson(Json_payload, p_payload, p_length);
-    // Check if message is for user
-    if (strcmp(Json_payload["id"], MQTT_CLIENT_ID) == 0 || strcmp(Json_payload["id"], "All") == 0) {
-        if (int(Json_payload["header"]) == Room_Controller) {
-            servoMotor(int(Json_payload["data_int"]["Outdoor_temp"])); 
-        }
-    }
-}
-
-
-// MQTT: mal for å sende data
-/*
-mqtt_message.resiver = "Hub";
-mqtt_message.header = Doorbell;
-mqtt_message.room = Entry;
-mqtt_message.data_int[0] = { "key", 10 };
-mqtt_message.data_int[1] = { "key", 10 };
-mqtt.pub(mqtt_message, MQTT_TOPIC, false);
-*/
-
-
+// AIRING: Instanciate Servo
+Servo servo;
 
 void setup() {
   
@@ -131,11 +136,16 @@ void setup() {
                           "Please wait...");
   delay(READTIME);                                        // Allow user to read message on screen
 
+  
   // HARDWARE:
   hw_setup();                                             // Setup hardware for room controller
+  
+  
+  // SERVO: Setup
+  servo.attach(pin_servo, 500, 2400);
+  
+  
 
-  // SERVO: 
-  //Servo_setup();
 
   // WiFi: Initial connection attempt
   tft_main.fillScreen(TFT_BLACK);                         // Feedback to user: Connecting WiFi
@@ -256,6 +266,68 @@ void setup() {
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
   }
 
+
+  // ID: Prepare menu system for handling room setup
+  if (id_room == 0){
+
+    tft_main.fillScreen(TFT_BLACK);                                                                     // Clear screen
+    display_setup_messages( "Configuration:",
+                            "Please select", 
+                            "Room");
+    delay(READTIME);
+    tft_main.fillScreen(TFT_BLACK);                                                                     // Clear screen
+  }
+  
+  // ID: Select room ID
+  while (id_room == 0){
+    
+    buttonstate_up                    = digitalRead(pin_up);
+    buttonstate_dwn                   = digitalRead(pin_dwn);
+    buttonstate_lft                   = digitalRead(pin_lft);
+    buttonstate_rgt                   = digitalRead(pin_rgt);
+
+    // Read navigation buttons even while inside loop
+    if ((buttonstate_up == HIGH) && (prev_buttonstate_up == LOW))   { pos_edge_up = HIGH; }                // Pos edge UP 
+    else {pos_edge_up = LOW;}
+    if ((buttonstate_dwn == HIGH) && (prev_buttonstate_dwn == LOW)) { pos_edge_dwn = HIGH;}                // Pos edge DOWN
+    else {pos_edge_dwn = LOW;}
+    if ((buttonstate_lft == HIGH) && (prev_buttonstate_lft == LOW)) { pos_edge_lft = HIGH;}                // Pos edge LEFT
+    else {pos_edge_lft = LOW;}
+    if ((buttonstate_rgt == HIGH) && (prev_buttonstate_rgt == LOW)) { pos_edge_rgt = HIGH;}                // Pos edge RIGHT  
+    else {pos_edge_rgt = LOW;}
+
+    if (pos_edge_rgt){              // Increase menu level
+      menu_lvl ++;
+      tft_main.fillScreen(TFT_BLACK);
+    }
+    // Navigation
+                                                                    
+    display_menu(current_lvl_val, id_room_list);
+
+    if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, pos_edge_up, pos_edge_dwn, current_lvl_val);}
+    else if (menu_lvl == 2)  {id_room                         = (current_lvl_val + 1);
+                              tft_main.fillScreen(TFT_BLACK);
+                              display_setup_messages("Room","selected:", id_room_list[current_lvl_val - 1].c_str());
+                              delay(READTIME);
+                              current_lvl_val                 = 1;
+                              menu_lvl                        = 0;
+                              }                                                                     
+
+    prev_buttonstate_up  = buttonstate_up;
+    prev_buttonstate_dwn = buttonstate_dwn;
+    prev_buttonstate_lft = buttonstate_lft;
+    prev_buttonstate_rgt = buttonstate_rgt;
+
+    if (current_lvl_val == id_room_list.size())   {bottom_reached = HIGH;}
+    else                                          {bottom_reached = LOW;}
+  }
+
+  // ROOM CONTROL: Set initial values
+  roomControl.setRoomId(id_room);                         // Set room ID
+  roomControl.setTempHysteresis(1);                       // Set temperature hysteresis (+/- 1C)
+  roomControl.setFanWattage(100);                         // Fan motor    = 100W
+  roomControl.setHeaterWattage(900);                      // Heater power = 900W
+
   // SETUP: Finished
   tft_main.fillScreen(TFT_BLACK);                         // Clear screen
   display_setup_messages( "Setup",                        // Feedback to user
@@ -264,8 +336,10 @@ void setup() {
   delay(READTIME);                                        // Allow user to read screen
   tft_main.fillScreen(TFT_BLACK);                         // Clear screen
 
-  // Instanciate temperature class
-  Temperature t{23, 17, 13, 8};
+  current_lvl_val                 = 1;                    // Value for "display_menu" function, so it knows which element is active
+  menu_lvl                        = 1;
+  bottom_reached                  = LOW;                  // Variable giving feedback if bottom button in menu is reached
+  
 }
 
 
@@ -323,7 +397,7 @@ void setup() {
         std::vector<std::string> fan_cathegories{"Override auto.", "Fan power"};
 
         // Airing menu (4)
-        std::vector<std::string> airing_cathegories{"Override auto.", "Opening () man"};
+        std::vector<std::string> airing_cathegories{"Override auto.", "Man. opening"};
 //
 
 // LIGHT: Variables for light control in the room
@@ -339,10 +413,12 @@ int cot_light_dimming               = 100;                // Light dimming statu
 int cot_light_dimming_prev          = 100;                // Light dimming status read from CoT - previous scan
 
 // TEMPERATURE: Variables for temperature control
+bool heating_state                  = LOW;
 bool long_absence                   = LOW;                // Variable active
+int  temp_outdoor                   = 10;                 // Temperature read from forecast
 int  temperature_profile            = 0;                  // States of temperature - 0 = Home, 1 = Away, 2 = Night, 3 = Long absence
 int  temperature_set;                                     // Variable containing the new temperature to be set for the curret temperature profile
-std::vector<int> temperatures{23, 17, 13, 8};             // Preset temperatures [Home, Away, Night, Long absence]
+int temperatures[] = {23, 17, 13, 8};             // Preset temperatures [Home, Away, Night, Long absence]
 int cot_temp_home                   = temperatures[0];    // Set temperature read from CoT - Home
 int cot_temp_home_prev              = temperatures[0];    // Set temperature read from CoT - Home - Value of previous scan
 int cot_temp_away                   = temperatures[1];    // Set temperature read from CoT - Away
@@ -363,8 +439,9 @@ int temperature_weekplan[7][24]     = {                   // Two dimensional arr
                                       {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Thursday
                                       {  NI, NI, NI, NI, NI, NI, HO, HO, AW, AW, AW, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, NI, NI, NI},   // Friday
                                       {  NI, NI, NI, NI, NI, NI, HO, HO, HO, HO, HO, HO, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, HO, NI},   // Saturday
-                                      {  NI, NI, NI, NI, NI, NI, HO, HO, HO, HO, HO, HO, AW, AW, AW, AW, AW, HO, HO, HO, HO, HO, HO, NI}    // Sunday
+                                      {  NI, NI, NI, NI, NI, NI, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, HO, NI}    // Sunday
 };
+
 
 // FAN: Variables for fan control
 bool fan_override_auto              = LOW;                // Overriding the automatic program for fan control
@@ -373,16 +450,28 @@ int cot_fan_power                   = 100;                // Set percentage valu
 int cot_fan_power_prev              = 100;                // Set percentage value read from CoT - fan power - Value of previous scan
 
 // AIRING: Variables for airing control
+bool airing_override_auto           = LOW;                // Override automatic control of window
+int airing_opening                  = 0;                  // Window opening in degrees
 int cot_airing_opening              = 0;                  // Set percentage value read from CoT - airing window opening (degrees)
 int cot_airing_opening_prev         = 0;                  // Set percentage value read from CoT - airing window opening (degrees) - Value of previous scan
 
 // NAVIGATION: Variables for menu navigation
-bool  buttonstate_up, buttonstate_dwn, buttonstate_lft, buttonstate_rgt;   // Declare values representing button states
 unsigned long buttonpress_ts;
 bool  val_adjust                    = LOW;                // Var selecting if the view to be shown is a menu or someting else
 bool  temp_adjust                   = LOW;                // Var selecting if the view to be shown is for temperature modification
 int   adjusted_value;                                     // Containing the variable currently being altered
 char* adjusted_value_name;                                // Name of the variable currently being altered (for visualisation on screen)
+int lvl1_val                        = 1;
+int lvl2_val                        = 1;
+int lvl3_val                        = 1;
+int lvl4_val                        = 1;
+int lvl5_val                        = 1;
+int lvl6_val                        = 1;
+bool deep_end_reached               = LOW;                // Variable giving feedback if deepest level of menu is reached
+bool modify_val_percent             = LOW;                // Variable giving feedback if the value to be adjusted is a percentage value (only 0-100), (interval 5)
+std::vector<std::string> current_vector{};
+std::vector<int>prev_menu_adress{1,1,1,1,1,1,1};
+
 
 // SCREENSAVER
 bool  screensaver                   = LOW;                // Giving signal if user has been inactive and screensaver must be applied
@@ -391,38 +480,13 @@ int   screensaver_activate_time     = 20 * SECOND;        // If inactive for mor
 int   screensaver_exe_number        = 0;                  // Screensaver execution number. Decides which time-consuming function should be executed the current scan (typically CoT action)
 volatile bool screensaver_interrupt = LOW;
 
-// NAVIGATION: Declare and set initial button states 
-bool  prev_buttonstate_up           = LOW;
-bool  prev_buttonstate_dwn          = LOW;
-bool  prev_buttonstate_lft          = LOW;
-bool  prev_buttonstate_rgt          = LOW;
 
-bool pos_edge_up                    = LOW;
-bool pos_edge_dwn                   = LOW;
-bool pos_edge_lft                   = LOW;
-bool pos_edge_rgt                   = LOW;
-
-// NAVIGATION: Variables for menu navigation
-int menu_lvl                        = 0;
-int lvl1_val                        = 0;
-int lvl2_val                        = 0;
-int lvl3_val                        = 0;
-int lvl4_val                        = 0;
-int lvl5_val                        = 0;
-int lvl6_val                        = 0;
-
-int current_lvl_val                 = 1;                  // Value for "display_menu" function, so it knows which element is active
-
-bool deep_end_reached               = LOW;                // Variable giving feedback if deepest level of menu is reached
-bool modify_val_percent             = LOW;                // Variable giving feedback if the value to be adjusted is a percentage value (only 0-100), (interval 5)
-bool bottom_reached                 = LOW;                // Variable giving feedback if bottom button in menu is reached
-
-std::vector<std::string> current_vector{};
-std::vector<int>prev_menu_adress{1,1,1,1,1,1,1};
+// CONSUMPTION
+int consumption_package_MQTT[26];
 
 
 void loop() {
-  
+
   // TIME: Check for millis rollover, and reset timestamp values to 0
   if (millis() < millis_prev){                            // If millis() value read is lower than the previously read value, a rollover must have occurred 
     millis_rollover                 = HIGH;
@@ -441,7 +505,8 @@ void loop() {
   roomlight_intensity_measured      = roomlight_intensity_measured/4; // Need to use 10 bit reading because HW does not handle lower resolution. We then devide by 4 to get a 8 bit value
 
   // TEMPERATURE: Read room temperature
-    if (millis() >= temperature_read_ts + temperature_read_interval){ //To avoid reading temperature each cycle
+  if (millis() >= temperature_read_ts + temperature_read_interval){ //To avoid reading temperature each cycle
+    
     // Get temp sensor reading
     analogReadResolution(10);
     temperature_read_raw            = analogRead(pin_temp_sensor);
@@ -452,8 +517,10 @@ void loop() {
     // Convert to C
     temperature_read_c              = (temperature_read_raw - 500) / 10 +6; //https://learn.adafruit.com/tmp36-temperature-sensor
 
+    // Timestamp for when temp was read last
     temperature_read_ts             = millis();
   }
+  
   // NAVIGATION: Read navigation pushbuttons
   buttonstate_up                    = digitalRead(pin_up);
   buttonstate_dwn                   = digitalRead(pin_dwn);
@@ -477,7 +544,6 @@ void loop() {
                                                                     buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
   else {pos_edge_rgt = LOW;}
 
-  
   // SCREENSAVER: Activation timer
   if (millis() >= (buttonpress_ts + screensaver_activate_time))   {screensaver = HIGH;}
   else                                                            {screensaver = LOW;}
@@ -485,19 +551,18 @@ void loop() {
   // SCREENSAVER: 
   if (screensaver){
     
-    attachInterrupt(pin_lft, ISR, RISING);                // Attach interrupts to pushbuttons to be able to wake up
+    attachInterrupt(pin_lft, ISR, RISING);                // Attach interrupts to pushbuttons to be able to "wake up"
     attachInterrupt(pin_rgt, ISR, RISING);
     attachInterrupt(pin_up,  ISR, RISING);
     attachInterrupt(pin_dwn, ISR, RISING);
 
-    if (!screensaver_prev){                               // Reset screen if pos edge 
+    if (!screensaver_prev){                               // Clear screen if screensaver has just been activated
       tft_main.fillScreen(TFT_BLACK);}                    
     
-    display_screensaver(temperature_read_c, "", time_mm_prev, time_ss_prev);
-    time_mm_prev = minute();
-    time_ss_prev = second();
+    display_screensaver(temperature_read_c, "", time_ss_prev);  // Display screensaver
+    time_ss_prev = second();                              // Set comparison time for next cycle
   }
-  else if (!screensaver && screensaver_prev){             // Reset screen before activating a different screen
+  else if (!screensaver && screensaver_prev){             // Clear screen if screensaver has just been deactivated
     tft_main.fillScreen(TFT_BLACK);
   }
 
@@ -603,49 +668,53 @@ void loop() {
       
       // Reset counter if end if line is reached
       if (screensaver_exe_number > 17){
-        screensaver_exe_number = 0;                              // Reset counter
+        screensaver_exe_number = 0;                       // Reset counter
       }
 
-      // CoT: Each of the CoT operations are very time consuming
-      if      (screensaver_exe_number == 0)   { cot_light_toggle    = CoT.read(KEY_LIGHT_TOGGLE,  TOKEN);}
-      else if (screensaver_exe_number == 1)   { cot_light_dimming   = CoT.read(KEY_LIGHT_DIMMING, TOKEN);}
-      else if (screensaver_exe_number == 2)   { cot_temp_home       = CoT.read(KEY_TEMP_HOME,     TOKEN);}
-      else if (screensaver_exe_number == 3)   { cot_temp_away       = CoT.read(KEY_TEMP_AWAY,     TOKEN);}
-      else if (screensaver_exe_number == 4)   { cot_temp_night      = CoT.read(KEY_TEMP_NIGHT,    TOKEN);}
-      else if (screensaver_exe_number == 5)   { cot_temp_long_abs   = CoT.read(KEY_TEMP_LONG_ABS, TOKEN);}
-      else if (screensaver_exe_number == 6)   { cot_fan_power       = CoT.read(KEY_FAN_POWER,     TOKEN);}
-      else if (screensaver_exe_number == 7)   { cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN);}
-      
-      // LIGHT: CoT write
-      else if (screensaver_exe_number == 8)   { CoT.write(KEY_LIGHT_TOGGLE,   roomlight_state,    TOKEN);}
-      else if (screensaver_exe_number == 9)   { CoT.write(KEY_LIGHT_DIMMING,  roomlight_intensity_percentage, TOKEN);}
-      
-      // TEMPERATURE: CoT write
-      else if (screensaver_exe_number == 10)  { CoT.write(KEY_TEMP_HOME,      temperatures[0],    TOKEN);}
-      else if (screensaver_exe_number == 11)  { CoT.write(KEY_TEMP_AWAY,      temperatures[1],    TOKEN);}
-      else if (screensaver_exe_number == 12)  { CoT.write(KEY_TEMP_NIGHT,     temperatures[2],    TOKEN);}
-      else if (screensaver_exe_number == 13)  { CoT.write(KEY_TEMP_LONG_ABS,  temperatures[3],    TOKEN);}
-      else if (screensaver_exe_number == 14)  { CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN);}
-      
-      // FAN: CoT write
-      else if (screensaver_exe_number == 15)  { CoT.write(KEY_FAN_POWER,      14, TOKEN);}
+      switch (screensaver_exe_number) {                   // Select which background operation to execute
+        
+        // TIME: update system time
+        case 0:  timeClient.update();
+                  setTime(timeClient.getHours(),          // Set new system time
+                          timeClient.getMinutes(), 
+                          timeClient.getSeconds(), 
+                          timeClient.getFormattedDate().substring(8,10).toInt(),    // DAY
+                          timeClient.getFormattedDate().substring(5,7).toInt(),     // MONTH
+                          timeClient.getFormattedDate().substring(0,4).toInt());    // YEAR
+                  break;
+        
+        // CoT: read all values
+        case 1:   cot_light_toggle    = CoT.read(KEY_LIGHT_TOGGLE,  TOKEN); break;            // Read   Light state
+        case 2:   CoT.write(KEY_LIGHT_TOGGLE,   roomlight_state,    TOKEN); break;            // Write  Light state
+        
+        case 3:   cot_light_dimming   = CoT.read(KEY_LIGHT_DIMMING, TOKEN); break;            // Read   Dimming
+        case 4:   CoT.write(KEY_LIGHT_DIMMING,  roomlight_intensity_percentage, TOKEN); break;// Write  Dimming
+        
+        case 5:   cot_temp_home       = CoT.read(KEY_TEMP_HOME,     TOKEN); break;            // Read   Home temp set
+        case 6:   CoT.write(KEY_TEMP_HOME,      temperatures[0],    TOKEN); break;            // Write  Home temp set
 
-      // AIRING
-      else if (screensaver_exe_number == 16)  { CoT.write(KEY_AIRING_OPENING, 15, TOKEN);}
+        case 7:   cot_temp_away       = CoT.read(KEY_TEMP_AWAY,     TOKEN); break;            // Read   Away temp set
+        case 8:   CoT.write(KEY_TEMP_AWAY,      temperatures[1],    TOKEN); break;            // Write  Away temp set
 
-      else if (screensaver_exe_number == 17)  { timeClient.update();
-                                                setTime(timeClient.getHours(),                            // Set new system time
-                                                        timeClient.getMinutes(), 
-                                                        timeClient.getSeconds(), 
-                                                        timeClient.getFormattedDate().substring(8,10).toInt(),     // DAY
-                                                        timeClient.getFormattedDate().substring(5,7).toInt(),     // MONTH
-                                                        timeClient.getFormattedDate().substring(0,4).toInt());    // YEAR
+        case 9:   cot_temp_night      = CoT.read(KEY_TEMP_NIGHT,    TOKEN); break;            // Read   Night temp set
+        case 10:  CoT.write(KEY_TEMP_NIGHT,     temperatures[2],    TOKEN); break;            // Write  Night temp set
+
+        case 11:  cot_temp_long_abs   = CoT.read(KEY_TEMP_LONG_ABS, TOKEN); break;            // Read   Long absence temp set
+        case 12:  CoT.write(KEY_TEMP_LONG_ABS,  temperatures[3],    TOKEN); break;            // Write  Long absence temp set
+
+        case 13:  cot_fan_power       = CoT.read(KEY_FAN_POWER,     TOKEN); break;            // Read   Fan power
+        case 14:  CoT.write(KEY_FAN_POWER,      fan_power_percent,  TOKEN); break;            // Write  Fan power
+
+        case 15:  cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN); break;            // Read   Window opening
+        case 16:  CoT.write(KEY_AIRING_OPENING, airing_opening,     TOKEN); break;            // Write  Window opening
+        
+        case 17:  CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN); break;            // Write  Indoor temperature
       }
-
-      screensaver_exe_number ++;                                 // Incrememt item number each cycle
+      screensaver_exe_number ++;                          // Incrememt item number each cycle
     }
-  } 
+  }
 
+  
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
   //                                  MENU NAVIGATION                                //
@@ -753,15 +822,31 @@ void loop() {
       }
 
       else if     (menu_adress[1] == 3)   {                                                   // 3.3   - FAN
-          if      (menu_adress[2] == 1)   {/* Override time 1hr, 2hr, 3hr view*/;}            // 3.3.1 - Override auto time view
-          else if (menu_adress[2] == 2)   {/* Fan adjust +/- 5% view*/;}                      // 3.3.2 - Fan power window
+          if      (menu_adress[2] == 1)   { fan_override_auto = !fan_override_auto;           // 3.4.1 - Override auto toggle
+                                            toggle_popup(fan_override_auto, "Override auto-fan");
+                                            menu_lvl = 2;
+                                            menu_adress[0] = 2;
+                                            current_lvl_val = 1;}                             // 3.3.1 - Override auto time view
+          else if (menu_adress[2] == 2)   { fan_power_percent = mod_val(LOW, HIGH, pos_edge_up, pos_edge_dwn, fan_power_percent); // 3.3.2 - Fan power window
+                                            adjusted_value = fan_power_percent;  
+                                            adjusted_value_name = "Fan power";
+                                            val_adjust = HIGH;
+                                            deep_end_reached = HIGH;}                         // Prevent from entering deeper level in menu
       }
 
       else if     (menu_adress[1] == 4)   {                                                   // 3.4   - AIRING
-          if      (menu_adress[2] == 1)   {/* Override time 1hr, 2hr, 3hr view*/;}            // 3.4.1 - Override auto time view
-          else if (menu_adress[2] == 2)   {/* Airing adjust +/- 5% view*/;                    // 3.4.2 - Opening percent
-                                              deep_end_reached = HIGH;}                     
-      }
+          if      (menu_adress[2] == 1)   { airing_override_auto = !airing_override_auto;     // 3.4.1 - Override auto toggle
+                                            toggle_popup(airing_override_auto, "Override auto-vent");
+                                            menu_lvl = 2;
+                                            menu_adress[0] = 2;
+                                            current_lvl_val = 1;}          
+          else if (menu_adress[2] == 2)   {                                                   // 3.4.2 - Opening percent
+                                            airing_opening = mod_window(pos_edge_up, pos_edge_dwn, airing_opening); 
+                                            adjusted_value = airing_opening;  
+                                            adjusted_value_name = "Window opening";
+                                            val_adjust = HIGH;
+                                            deep_end_reached = HIGH;}
+      }                     
   }
 
   // Menu level 4
@@ -771,7 +856,8 @@ void loop() {
                                                 temperature_profile = menu_adress[3] - 1;
                                                 temperature_set = temperatures[temperature_profile];
                                                 temperature_set = mod_temp(pos_edge_up, pos_edge_dwn, temperature_set);
-                                                temp_adjust = HIGH;}
+                                                temp_adjust = HIGH;
+                                                deep_end_reached = HIGH;}
 
           else if     (menu_adress[2] == 2)   { current_vector = hour_cathegories;}                // 4.2.2    - Daily plan                    
               
@@ -855,15 +941,83 @@ void loop() {
 
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
-  //                                TEMPERATURE CONTROL                              //
+  //                                   ROOM CONTROL                                  //
   //                                                                                 //
   /////////////////////////////////////////////////////////////////////////////////////
 
-  // TEMPERATURE: Background operations 
-  if (wiFi_status && screensaver)    {                    // Only operate CoT when screensaver is activated
-
+  // TEMPERATURE
+  // Get correct temp from 1-sensor, 2-MQTT, 3-weekly plan
+  
+  if (long_absence){
+    roomControl.setLongAbsence();             // Start long absence program
+    roomControl.updateTemperatures(temperature_read_c, temp_outdoor, temperatures[3]);}
+  else {
+    roomControl.resetLongAbsence();           // Stop long absence program
+    roomControl.updateTemperatures(temperature_read_c, temp_outdoor, temperatures[temperature_weekplan[roomControl.getWeekday()][hour()] - 1]);
   }
 
+  // ROOM CONTROL: Update controls
+  // Update temp values from CoT. If they have changed from last cycle, roomControl will set the new temperature
+  roomControl.updateCurrentTemperatureList(temperatures[0], temperatures[1], temperatures[2], temperatures[3]);
+  roomControl.updateTemperaturesFromCoT(cot_temp_home, cot_temp_away, cot_temp_night, cot_temp_long_abs);
+  
+  roomControl.updateLightParameters(roomlight_state, roomlight_intensity_percentage);
+  roomControl.updateLightParametersFromCoT(cot_light_toggle, cot_light_dimming);
+
+  roomControl.updateFanPower(fan_power_percent);
+  roomControl.updateFanPowerFromCoT(cot_fan_power);
+
+  roomControl.updateWindowOpening(airing_opening);
+  roomControl.updateWindowOpeningFromCoT(cot_airing_opening);
+  
+
+
+  roomControl.update();
+
+
+
+  temperatures[0]   = roomControl.getTemperatureHome();
+  temperatures[1]   = roomControl.getTemperatureAway();
+  temperatures[2]   = roomControl.getTemperatureNight();
+  temperatures[3]   = roomControl.getTemperatureLongAbs();
+
+  fan_power_percent = roomControl.getFanPower();
+
+  airing_opening    = roomControl.getWindowOpening();
+
+  roomlight_state   = roomControl.getLightStatus();
+  roomlight_intensity_percentage = roomControl.getLightDimming();
+  
+  // TEMPERATURE: Control heating
+  digitalWrite(pin_heating_LED, roomControl.autoHeating());
+  
+  
+  // FAN
+  if (fan_override_auto)    {ledcWrite(CHANNEL_FAN, fan_power_percent * 255 /100);}           // Manual control
+  else                      {ledcWrite(CHANNEL_FAN, roomControl.fanPowerAuto()* 255 /100);}   // Automatic control
+
+  // AIRING
+  if (airing_override_auto) {servo.write(airing_opening);}                                    // Manual control
+  else                      {servo.write(roomControl.windowDegreesAuto());}                   // Automatic control
+
+  for (int i = 0; i < 26; i++){
+    consumption_package_MQTT[i] = roomControl.returnTodaysConsumption()[i]; 
+  }
+  Serial.print("Todays consumption plan: "); 
+  
+  for (int i = 0; i < 26; i++){
+    Serial.print(consumption_package_MQTT[i]);
+    Serial.print(", ");
+  }
+  Serial.println("");
+
+  Serial.print("YEsterdays consumption plan: "); 
+  for (int i = 0; i < 26; i++){
+    Serial.print(roomControl.returnYesterdaysConsumption()[i]);
+    Serial.print(", ");
+  }
+  Serial.println("");
+ 
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
   //                             GENERAL END-OF-LOOP TASKS                           //
@@ -892,7 +1046,6 @@ void loop() {
   // TIME
   millis_prev = millis();
   
-
   // SCREENSAVER
   screensaver_prev = screensaver;
 
@@ -913,9 +1066,37 @@ void IRAM_ATTR ISR(){                                 // ISR function for "wakin
   screensaver_interrupt   = HIGH;
 }
 
+void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
+    // Concat the payload into a string
+    String payload;
+    for (uint8_t i = 0; i < p_length; i++) {
+        payload.concat((char)p_payload[i]);
+    }
+    Serial.println(payload);
+
+    deserializeJson(Json_payload, p_payload, p_length);
+    // Check if message is for user
+    if (strcmp(Json_payload["id"], MQTT_CLIENT_ID) == 0 || strcmp(Json_payload["id"], "All") == 0) {
+        if (int(Json_payload["header"]) == Room_Controller) {
+            temp_outdoor = int(Json_payload["data_int"]["Outdoor_temp"]); 
+        }
+    }
+}
+
+// ROOM CONTROL: Instanciate object and set initial parameters
+
+// MQTT: mal for å sende data
+/*
+mqtt_message.resiver = "Hub";
+mqtt_message.header = Doorbell;
+mqtt_message.room = Entry;
+mqtt_message.data_int[0] = { "key", 10 };
+mqtt_message.data_int[1] = { "key", 10 };
+mqtt.pub(mqtt_message, MQTT_TOPIC, false);
+*/
+
+
 RTC_DATA_ATTR int x = 0;  // Variable saved even when in deep sleep
-
-
 
 #ifdef DEBUB
  

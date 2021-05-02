@@ -7,7 +7,7 @@
     #define MINUTE              60  *SECOND
     #define HOUR                60  *MINUTE
     #define DAY                 24  *HOUR
-    #define READTIME            1   *SECOND // should be 3
+    #define READTIME            2   *SECOND // should be 3
 
 // Controller constants
     #define OUTPUT_MILLIVOLT    3300
@@ -27,8 +27,8 @@
     #define pin_light_sensor    35
     
     // PWM
-    #define CHANNEL_LED         1
-    #define CH2                 2       
+    #define CHANNEL_LED         9
+    #define CHANNEL_FAN         10       
     #define CH3                 3   
  
 

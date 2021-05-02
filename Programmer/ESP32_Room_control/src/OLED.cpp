@@ -126,6 +126,23 @@ int mod_temp(bool pos_edge_up, bool pos_edge_dwn, int value){
   return value;
 }
 
+int mod_window(bool pos_edge_up, bool pos_edge_dwn, int value){   
+    
+  if ((pos_edge_dwn) && (value >= 0)) {
+    value -= 10;
+    TFT_eSPI().fillScreen(TFT_BLACK);    
+  }
+  else if ((pos_edge_up) && (value < 80)){
+    value += 10;
+    TFT_eSPI().fillScreen(TFT_BLACK);
+  }
+
+  if (value < 0){
+    value=0;
+  }
+  return value;
+}
+
 void display_message(int displaytime_ms, char* line1, char* line2, char* line3){  // Function for displaying a message on screen for x milliseconds
    TFT_eSPI tft_display_message = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
 
@@ -161,7 +178,7 @@ void display_setup_messages(const char* line1, const char* line2, const char* li
    tft_display_reconnecting_screen.drawCentreString(line3,  cntr_x , cntr_y + 45, 4);
    tft_display_reconnecting_screen.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);}   
 
-void display_screensaver(int temperature, const char* line1, int omm, int oss){  // Function for displaying screensaver
+void display_screensaver(int temperature, const char* line1, int oss){  // Function for displaying screensaver
   TFT_eSPI tft_display_screensaver = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc
   int item = 0;
 
@@ -190,15 +207,13 @@ void display_screensaver(int temperature, const char* line1, int omm, int oss){ 
   int MM    = month();
   int YYYY  = year();
 
-  // FRAME
+  // FRAME: Draw white frame
   tft_display_screensaver.drawRoundRect(rect_in, cntr_x - (180/2), rect_w, 180, 10, TFT_SKYBLUE);
 
-  // WEEKDAY
+  // WEEKDAY: Write current weekday
   tft_display_screensaver.drawCentreString(weekdays[week_day].c_str(), cntr_x, 60, 4);
 
-
-  // DATE
-
+  // DATE: Write current date
   if (DD < 10){ xpos += tft_display_screensaver.drawChar  ('0', xpos, ypos, 4);}          // Add hours leading zero for 24 hr clock // Copied from TFT_eSPI example code
                 xpos += tft_display_screensaver.drawNumber(DD,  xpos, ypos, 4);           // Draw day
 
@@ -209,9 +224,8 @@ void display_screensaver(int temperature, const char* line1, int omm, int oss){ 
                 xpos += tft_display_screensaver.drawChar  ('-', xpos, ypos, 4);
                 xpos += tft_display_screensaver.drawNumber(YYYY,xpos, ypos, 4);           // Draw year
 
-
+  // CLOCK: Display time
   if (item == 1){
-    // Clock
     xpos = 55;  // Redefine xpos because has incremented during showing date
     tft_display_screensaver.setTextSize(2);
     if (hh < 10){ xpos += tft_display_screensaver.drawChar  ('0', xpos, cntr_y+25, 4);}   // Add hours leading zero for 24 hr clock // Copied from TFT_eSPI example code
@@ -221,10 +235,9 @@ void display_screensaver(int temperature, const char* line1, int omm, int oss){ 
                   xpos += tft_display_screensaver.drawNumber(mm,  xpos, cntr_y+25, 4);    // Draw minutes
   }
 
-  else{                                                                                 // Display Temperature
-    // Temperature
+  // TEMPERATURE: Display indoor temperature
+  else{                                                                                   // Display Temperature
     char buffer[10];
-    //tft_display_screensaver.drawCentreString(line1, cntr_x , cntr_y - 25, 4);
     tft_display_screensaver.drawCentreString(itoa(temperature, buffer, 10), cntr_x - 30 , cntr_y +25, 6);
     tft_display_screensaver.drawCentreString("o", cntr_x + 10 , cntr_y +20, 4);
     tft_display_screensaver.setTextSize(2);
@@ -232,10 +245,6 @@ void display_screensaver(int temperature, const char* line1, int omm, int oss){ 
   }
 } 
    
-
-
-   
-
 // Function for displaying a complete menu based on a vector containing cathegories
 void display_weekplan_setting(int level_val, int sel_icon, std::vector<std::string> item_vector){   // sel_lvl = selected level (pops out in green or blue)
   
@@ -246,29 +255,9 @@ void display_weekplan_setting(int level_val, int sel_icon, std::vector<std::stri
     menu_icon(i+1, level_val, item_vector[i],TFT_BLUE, sel_icon);  
   };
   tft_display_weekplan_mode.fillTriangle(5,123, 5,117, 15,120, TFT_SKYBLUE);
-
 }
 
   
-  /*
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.print(weekday());
-  Serial.print(" - ");
-  
-  Serial.print(year());
-  Serial.print("-");
-  Serial.print(month());
-  Serial.print("-");
-  Serial.print(day());
-  Serial.print(" : ");
-  Serial.print(hour());
-  Serial.print(":");
-  Serial.print(minute());
-  Serial.print(":");
-  Serial.println(second());
-  */
 
 
  

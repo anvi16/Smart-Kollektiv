@@ -57,6 +57,7 @@ char        pw[]                    = "majones123";             // Jorgen
 
 // ID
 int         id_room                 = 0;                  // Declare variable for which room the controller should be configured for (0 = NaN)
+
 std::vector<std::string> id_room_list   { "Dormroom 1",   // Rooms in house to be displayed on OLED when asking which room controller should be configured for.
                                           "Dormroom 2", 
                                           "Dormroom 3", 
@@ -305,7 +306,7 @@ void setup() {
     display_menu(current_lvl_val, id_room_list);
 
     if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, pos_edge_up, pos_edge_dwn, current_lvl_val);}
-    else if (menu_lvl == 2)  {id_room                         = (current_lvl_val + 1);
+    else if (menu_lvl == 2)  {id_room                         = (current_lvl_val);
                               tft_main.fillScreen(TFT_BLACK);
                               display_setup_messages("Room","selected:", id_room_list[current_lvl_val - 1].c_str());
                               delay(READTIME);
@@ -667,7 +668,7 @@ void loop() {
       // Since the CoT communication is incredibly slow, we will only execute one CoT operation per cycle to avoid stalling the rest of the program longer than necessarry
       
       // Reset counter if end if line is reached
-      if (screensaver_exe_number > 17){
+      if (screensaver_exe_number > 18){
         screensaver_exe_number = 0;                       // Reset counter
       }
 
@@ -709,6 +710,58 @@ void loop() {
         case 16:  CoT.write(KEY_AIRING_OPENING, airing_opening,     TOKEN); break;            // Write  Window opening
         
         case 17:  CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN); break;            // Write  Indoor temperature
+
+        case 18:  Room id = static_cast<Room>(id_room);
+
+                  // Read todays consumption
+                  for (int i = 0; i < 26; i++){
+                    consumption_package_MQTT[i] = roomControl.returnTodaysConsumption()[i]; 
+                  };
+
+                  String buffer_today;
+
+                  for (int i = 0; i < 26; i++){
+                    buffer_today += String(consumption_package_MQTT[i]);
+                    buffer_today += ",";
+                  }
+
+
+                  // Read yesterdays consumption
+                  for (int i = 0; i < 26; i++){
+                    consumption_package_MQTT[i] = roomControl.returnYesterdaysConsumption()[i]; 
+                  };
+
+                  String buffer_yesterday;
+
+                  for (int i = 0; i < 26; i++){
+                    buffer_yesterday += String(consumption_package_MQTT[i]);
+                    buffer_yesterday += ",";
+                  }
+
+                  mqtt_message.resiver = "Hub";
+                  mqtt_message.header = Energi_consumption;
+                  mqtt_message.room = id;
+                  mqtt_message.data_String[0] = { "todaysCons", buffer_today};
+                  mqtt_message.data_String[1] = { "yesterdaysCons", buffer_yesterday};
+                  mqtt.pub(mqtt_message);
+
+                  Serial.println(" --------------------Consumption pushed---------------------------- ");
+
+
+
+// MQTT: mal for å sende data
+/*
+mqtt_message.resiver = "Hub";
+mqtt_message.header = Doorbell;
+mqtt_message.room = Entry;
+mqtt_message.data_int[0] = { "key", 10 };
+mqtt_message.data_int[1] = { "key", 10 };
+mqtt.pub(mqtt_message, MQTT_TOPIC, false);
+*/
+
+
+
+
       }
       screensaver_exe_number ++;                          // Incrememt item number each cycle
     }
@@ -1017,6 +1070,15 @@ void loop() {
     Serial.print(", ");
   }
   Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.print("Outdoor temp: ");
+  Serial.println(temp_outdoor);
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
  
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
@@ -1095,7 +1157,8 @@ mqtt_message.data_int[1] = { "key", 10 };
 mqtt.pub(mqtt_message, MQTT_TOPIC, false);
 */
 
-
+//
+ 
 RTC_DATA_ATTR int x = 0;  // Variable saved even when in deep sleep
 
 #ifdef DEBUB

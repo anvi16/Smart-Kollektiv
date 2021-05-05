@@ -18,7 +18,7 @@ Resp:
 #include "Peripherals.h"
 #include "RoomControl.h"
 #include "../lib/MQTT/MQTT_Class.h"
-//#include "Servo.h"
+#include "HWClass.h"
 
 //#define DEBUG
 
@@ -121,8 +121,16 @@ RoomControl roomControl;
 // AIRING: Instanciate Servo
 Servo servo;
 
+// BUTTON
+Button up;
+Button down;
+Button left;
+Button right;
+
+
 void setup() {
   
+
   // SERIAL: Set up serial communication
   Serial.begin(115200); // Serial communication
   
@@ -281,6 +289,11 @@ void setup() {
   
   // ID: Select room ID
   while (id_room == 0){
+    
+    up.setState(digitalRead(pin_up));
+    down.setState(digitalRead(pin_dwn));
+    left.setState(digitalRead(pin_lft));
+    right.setState(digitalRead(pin_rgt));
     
     buttonstate_up                    = digitalRead(pin_up);
     buttonstate_dwn                   = digitalRead(pin_dwn);

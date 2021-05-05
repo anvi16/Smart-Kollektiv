@@ -36,12 +36,11 @@ char          daysOfTheWeek[7][12]  = {"Sunday", "Monday", "Tuesday", "Wednesday
 int           time_ss_prev          = 0;
 
 // WiFi: SSID, Password
-  //const char* WIFI_SSID           = "Vik";
-  //const char* WIFI_PASSWORD       = "Y897R123";
-const char* WIFI_SSID               = "jorgen";                 // Jorgen
-const char* WIFI_PASSWORD           = "majones123";             // Jorgen
+const char* WIFI_SSID               = "jorgen";           // Jorgen
+const char* WIFI_PASSWORD           = "majones123";       // Jorgen
 // const char* WIFI_SSID               = "DESKTOP-P40U26J 5521";   // Albertin
 // const char* WIFI_PASSWORD           = "g8X2684+";               // Albertin
+
 bool        wiFi_status             = LOW;
 bool        wiFi_status_prev        = LOW;
 bool        wiFi_status_pos_edge    = LOW;
@@ -50,8 +49,8 @@ unsigned long wiFi_last_connection_attempt_ts = 0;        // Timestamp (millis()
 int         wiFi_reconnection_freq  = 30 * SECOND;        // Try to reconnect every 1 minute
 
 // WiFi: Parameters for CoT
-char        ssid[]                  = "jorgen";                 // Jorgen
-char        pw[]                    = "majones123";             // Jorgen
+char        ssid[]                  = "jorgen";           // Jorgen
+char        pw[]                    = "majones123";       // Jorgen
 // char        ssid[]                  = "DESKTOP-P40U26J 5521";   // Albertin
 // char        pw[]                    = "g8X2684+";               // Albertin
 
@@ -78,16 +77,6 @@ bool bottom_reached                 = LOW;                // Variable giving fee
 // NAVIGATION: Declare and set initial button states 
 bool  buttonstate_up, buttonstate_dwn, buttonstate_lft, buttonstate_rgt;   // Declare values representing button states
 
-bool  prev_buttonstate_up           = LOW;
-bool  prev_buttonstate_dwn          = LOW;
-bool  prev_buttonstate_lft          = LOW;
-bool  prev_buttonstate_rgt          = LOW;
-
-bool  pos_edge_up                   = LOW;
-bool  pos_edge_dwn                  = LOW;
-bool  pos_edge_lft                  = LOW;
-bool  pos_edge_rgt                  = LOW;
-
 //CoT
 bool        cot_operational         = LOW;                // Bool saying if the CoT connection has been established after WiFi loss
 
@@ -98,6 +87,16 @@ const uint16_t  MQTT_SERVER_PORT    = 1883;
 
 // MQTT: Common topic for system
 const char* MQTT_TOPIC              = "My_home/mqtt";
+
+// MQTT: Template for sendig data
+/*
+mqtt_message.resiver = "Hub";
+mqtt_message.header = Doorbell;
+mqtt_message.room = Entry;
+mqtt_message.data_int[0] = { "key", 10 };
+mqtt_message.data_int[1] = { "key", 10 };
+mqtt.pub(mqtt_message, MQTT_TOPIC, false);
+*/
 
 // OLED: Instanciate TFT_eSPI library for main function. If not instanciated, it's not possible to customize text size, text colour etc.
 TFT_eSPI tft_main = TFT_eSPI();
@@ -121,7 +120,7 @@ RoomControl roomControl;
 // AIRING: Instanciate Servo
 Servo servo;
 
-// BUTTON
+// BUTTON: Initialize button objects
 Button up;
 Button down;
 Button left;
@@ -130,12 +129,11 @@ Button right;
 
 void setup() {
   
-
   // SERIAL: Set up serial communication
-  Serial.begin(115200); // Serial communication
+  Serial.begin(115200);                                   // Serial communication
   
   // OLED: Set up initial parameters for SPI control of OLED
-  tft_main.init();
+  tft_main.init();  
   tft_main.setRotation(1);
   tft_main.fillScreen(TFT_BLACK);
   tft_main.setTextColor(TFT_SKYBLUE, TFT_BLACK);
@@ -145,17 +143,12 @@ void setup() {
                           "Please wait...");
   delay(READTIME);                                        // Allow user to read message on screen
 
-  
   // HARDWARE:
   hw_setup();                                             // Setup hardware for room controller
-  
   
   // SERVO: Setup
   servo.attach(pin_servo, 500, 2400);
   
-  
-
-
   // WiFi: Initial connection attempt
   tft_main.fillScreen(TFT_BLACK);                         // Feedback to user: Connecting WiFi
   display_setup_messages( "Connecting to",
@@ -197,13 +190,13 @@ void setup() {
 
   else{                                                   // Execute if not connected to WiFi
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
-    display_setup_messages( "Connecting to",           // Feedback to user
+    display_setup_messages( "Connecting to",              // Feedback to user
                             "WiFi", 
                             "Failed!");
     delay(READTIME);                                      // Allow user to read screen
     tft_main.fillScreen(TFT_BLACK);                       // Clear screen
 
-    display_setup_messages( "CoT unavailable",           // Feedback to user
+    display_setup_messages( "CoT unavailable",            // Feedback to user
                             "at the moment", 
                             "Retry later");
     delay(READTIME);                                      // Allow user to read screen
@@ -279,59 +272,42 @@ void setup() {
   // ID: Prepare menu system for handling room setup
   if (id_room == 0){
 
-    tft_main.fillScreen(TFT_BLACK);                                                                     // Clear screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
     display_setup_messages( "Configuration:",
                             "Please select", 
                             "Room");
     delay(READTIME);
-    tft_main.fillScreen(TFT_BLACK);                                                                     // Clear screen
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
   }
   
   // ID: Select room ID
   while (id_room == 0){
     
+    // Update current button statuses
     up.setState(digitalRead(pin_up));
     down.setState(digitalRead(pin_dwn));
     left.setState(digitalRead(pin_lft));
     right.setState(digitalRead(pin_rgt));
     
-    buttonstate_up                    = digitalRead(pin_up);
-    buttonstate_dwn                   = digitalRead(pin_dwn);
-    buttonstate_lft                   = digitalRead(pin_lft);
-    buttonstate_rgt                   = digitalRead(pin_rgt);
 
-    // Read navigation buttons even while inside loop
-    if ((buttonstate_up == HIGH) && (prev_buttonstate_up == LOW))   { pos_edge_up = HIGH; }                // Pos edge UP 
-    else {pos_edge_up = LOW;}
-    if ((buttonstate_dwn == HIGH) && (prev_buttonstate_dwn == LOW)) { pos_edge_dwn = HIGH;}                // Pos edge DOWN
-    else {pos_edge_dwn = LOW;}
-    if ((buttonstate_lft == HIGH) && (prev_buttonstate_lft == LOW)) { pos_edge_lft = HIGH;}                // Pos edge LEFT
-    else {pos_edge_lft = LOW;}
-    if ((buttonstate_rgt == HIGH) && (prev_buttonstate_rgt == LOW)) { pos_edge_rgt = HIGH;}                // Pos edge RIGHT  
-    else {pos_edge_rgt = LOW;}
-
-    if (pos_edge_rgt){              // Increase menu level
+    if (right.posEdge()){                                 // Increase menu level
       menu_lvl ++;
       tft_main.fillScreen(TFT_BLACK);
     }
-    // Navigation
-                                                                    
+    
+    // Navigation                                                                
     display_menu(current_lvl_val, id_room_list);
 
-    if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, pos_edge_up, pos_edge_dwn, current_lvl_val);}
+    if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, up.posEdge(), down.posEdge(), current_lvl_val);}
     else if (menu_lvl == 2)  {id_room                         = (current_lvl_val);
                               tft_main.fillScreen(TFT_BLACK);
                               display_setup_messages("Room","selected:", id_room_list[current_lvl_val - 1].c_str());
                               delay(READTIME);
                               current_lvl_val                 = 1;
                               menu_lvl                        = 0;
-                              }                                                                     
+    }                                                                     
 
-    prev_buttonstate_up  = buttonstate_up;
-    prev_buttonstate_dwn = buttonstate_dwn;
-    prev_buttonstate_lft = buttonstate_lft;
-    prev_buttonstate_rgt = buttonstate_rgt;
-
+  
     if (current_lvl_val == id_room_list.size())   {bottom_reached = HIGH;}
     else                                          {bottom_reached = LOW;}
   }
@@ -353,7 +329,6 @@ void setup() {
   current_lvl_val                 = 1;                    // Value for "display_menu" function, so it knows which element is active
   menu_lvl                        = 1;
   bottom_reached                  = LOW;                  // Variable giving feedback if bottom button in menu is reached
-  
 }
 
 
@@ -422,9 +397,7 @@ int roomlight_setpoint_intensity    = 240;                // Set fairly bright e
 int roomlight_intensity_requested_dimmed;                 // The requested roomlight value after dimming is applied
 int roomlight_dutycycle             = 150;                // Variable controlling the duty cycle of the PWM.
 bool cot_light_toggle               = LOW;                // Light toggle status read from CoT
-bool cot_light_toggle_prev          = LOW;                // Light toggle status read from CoT - previous scan
 int cot_light_dimming               = 100;                // Light dimming status read from CoT
-int cot_light_dimming_prev          = 100;                // Light dimming status read from CoT - previous scan
 
 // TEMPERATURE: Variables for temperature control
 bool heating_state                  = LOW;
@@ -432,15 +405,11 @@ bool long_absence                   = LOW;                // Variable active
 int  temp_outdoor                   = 10;                 // Temperature read from forecast
 int  temperature_profile            = 0;                  // States of temperature - 0 = Home, 1 = Away, 2 = Night, 3 = Long absence
 int  temperature_set;                                     // Variable containing the new temperature to be set for the curret temperature profile
-int temperatures[] = {23, 17, 13, 8};             // Preset temperatures [Home, Away, Night, Long absence]
+int temperatures[] = {23, 17, 13, 8};                     // Preset temperatures [Home, Away, Night, Long absence]
 int cot_temp_home                   = temperatures[0];    // Set temperature read from CoT - Home
-int cot_temp_home_prev              = temperatures[0];    // Set temperature read from CoT - Home - Value of previous scan
 int cot_temp_away                   = temperatures[1];    // Set temperature read from CoT - Away
-int cot_temp_away_prev              = temperatures[1];    // Set temperature read from CoT - Away - Value of previous scan
 int cot_temp_night                  = temperatures[2];    // Set temperature read from CoT - Night
-int cot_temp_night_prev             = temperatures[2];    // Set temperature read from CoT - Night - Value of previous scan
 int cot_temp_long_abs               = temperatures[3];    // Set temperature read from CoT - Long absence
-int cot_temp_long_abs_prev          = temperatures[3];    // Set temperature read from CoT - Long absence - Value of previous scan
 int temperature_read_raw            = 0;                  // Read room temperature raw value
 int temperature_read_c              = 0;                  // Read room temperature in degrees
 int temperature_read_interval       = 10 * SECOND;        // Set interval for reading room temperature to 10 sec
@@ -461,13 +430,11 @@ int temperature_weekplan[7][24]     = {                   // Two dimensional arr
 bool fan_override_auto              = LOW;                // Overriding the automatic program for fan control
 int fan_power_percent               = 30;                 // Percentage value giving the power of the fan in percent.
 int cot_fan_power                   = 100;                // Set percentage value read from CoT - fan power
-int cot_fan_power_prev              = 100;                // Set percentage value read from CoT - fan power - Value of previous scan
 
 // AIRING: Variables for airing control
 bool airing_override_auto           = LOW;                // Override automatic control of window
 int airing_opening                  = 0;                  // Window opening in degrees
 int cot_airing_opening              = 0;                  // Set percentage value read from CoT - airing window opening (degrees)
-int cot_airing_opening_prev         = 0;                  // Set percentage value read from CoT - airing window opening (degrees) - Value of previous scan
 
 // NAVIGATION: Variables for menu navigation
 unsigned long buttonpress_ts;
@@ -500,7 +467,6 @@ int consumption_package_MQTT[26];
 
 
 void loop() {
-
   // TIME: Check for millis rollover, and reset timestamp values to 0
   if (millis() < millis_prev){                            // If millis() value read is lower than the previously read value, a rollover must have occurred 
     millis_rollover                 = HIGH;
@@ -536,27 +502,15 @@ void loop() {
   }
   
   // NAVIGATION: Read navigation pushbuttons
-  buttonstate_up                    = digitalRead(pin_up);
-  buttonstate_dwn                   = digitalRead(pin_dwn);
-  buttonstate_lft                   = digitalRead(pin_lft);
-  buttonstate_rgt                   = digitalRead(pin_rgt);
+  up.setState(digitalRead(pin_up));
+  down.setState(digitalRead(pin_dwn));
+  left.setState(digitalRead(pin_lft));
+  right.setState(digitalRead(pin_rgt));
 
-  // NAVIGATION: Pushutton edge detection
-  if ((buttonstate_up == HIGH) && (prev_buttonstate_up == LOW))   { pos_edge_up = HIGH;                 // Pos edge UP
-                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
-  else {pos_edge_up = LOW;}
-
-  if ((buttonstate_dwn == HIGH) && (prev_buttonstate_dwn == LOW)) { pos_edge_dwn = HIGH;                // Pos edge DOWN
-                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
-  else {pos_edge_dwn = LOW;}
-
-  if ((buttonstate_lft == HIGH) && (prev_buttonstate_lft == LOW)) { pos_edge_lft = HIGH;                // Pos edge LEFT
-                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
-  else {pos_edge_lft = LOW;}
-
-  if ((buttonstate_rgt == HIGH) && (prev_buttonstate_rgt == LOW)) { pos_edge_rgt = HIGH;                // Pos edge RIGHT
-                                                                    buttonpress_ts = millis();}         // Timestamp used by screensaver activation function  
-  else {pos_edge_rgt = LOW;}
+  // SCREENSAVER: Set timestamp for last time a button was pressed
+  if (up.posEdge() || down.posEdge() || left.posEdge() || right.posEdge()){
+    buttonpress_ts = millis();                            // Timestamp for last buttonpress
+  }
 
   // SCREENSAVER: Activation timer
   if (millis() >= (buttonpress_ts + screensaver_activate_time))   {screensaver = HIGH;}
@@ -635,8 +589,9 @@ void loop() {
       display_setup_messages( "Connecting to",            // Feedback to user
                               "MQTT", 
                               "Please wait...");
-      delay(READTIME - 1*SECOND);                         // Allow user to read screen
     }
+
+    delay(READTIME);                                      // Allow user to read screen
 
     mqtt.setup(WIFI_SSID, WIFI_PASSWORD, MQTT_SERVER_IP, MQTT_SERVER_PORT, Mqtt_callback);
     
@@ -648,6 +603,9 @@ void loop() {
                               "Connected!");
       delay(READTIME);                                    // Allow user to read screen
       tft_main.fillScreen(TFT_BLACK);                     
+    }
+    else{
+      delay(READTIME);
     }
   }                          
   
@@ -724,7 +682,7 @@ void loop() {
         
         case 17:  CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN); break;            // Write  Indoor temperature
 
-        case 18:  Room id = static_cast<Room>(id_room);
+        case 18:  Room id = static_cast<Room>(id_room);                                       // Write consumption data to RPi
 
                   // Read todays consumption
                   for (int i = 0; i < 26; i++){
@@ -733,11 +691,11 @@ void loop() {
 
                   String buffer_today;
 
+                  // Fill buffer with consumption data in string format
                   for (int i = 0; i < 26; i++){
                     buffer_today += String(consumption_package_MQTT[i]);
                     buffer_today += ",";
                   }
-
 
                   // Read yesterdays consumption
                   for (int i = 0; i < 26; i++){
@@ -746,35 +704,20 @@ void loop() {
 
                   String buffer_yesterday;
 
+                  // Fill buffer with consumption data in string format
                   for (int i = 0; i < 26; i++){
                     buffer_yesterday += String(consumption_package_MQTT[i]);
                     buffer_yesterday += ",";
                   }
-
+                  // Create JSON to send via MQTT to RPi
                   mqtt_message.resiver = "Hub";
                   mqtt_message.header = Energi_consumption;
                   mqtt_message.room = id;
                   mqtt_message.data_String[0] = { "todaysCons", buffer_today};
                   mqtt_message.data_String[1] = { "yesterdaysCons", buffer_yesterday};
+                  
+                  // Send data
                   mqtt.pub(mqtt_message);
-
-                  Serial.println(" --------------------Consumption pushed---------------------------- ");
-
-
-
-// MQTT: mal for å sende data
-/*
-mqtt_message.resiver = "Hub";
-mqtt_message.header = Doorbell;
-mqtt_message.room = Entry;
-mqtt_message.data_int[0] = { "key", 10 };
-mqtt_message.data_int[1] = { "key", 10 };
-mqtt.pub(mqtt_message, MQTT_TOPIC, false);
-*/
-
-
-
-
       }
       screensaver_exe_number ++;                          // Incrememt item number each cycle
     }
@@ -790,14 +733,14 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
   // MENU: Navigation
   if (!screensaver){                                      // When screensaver is active, the push of a button should only "wake" the controller
     // Change menu level
-    if (pos_edge_rgt){              // Increase menu level
+    if (right.posEdge()){                                 // Increase menu level
         if (!deep_end_reached){
             menu_lvl ++;
             tft_main.fillScreen(TFT_BLACK);
             val_adjust = LOW;                             // To solve bug of duplicated menu lines being written after having altered a value
         }
     }
-    else if (pos_edge_lft){                               // Decrease menu level
+    else if (left.posEdge()){                             // Decrease menu level
         if (menu_lvl > 1){                                // Prevent from going to lower edit level than allowed
             menu_lvl --;
             tft_main.fillScreen(TFT_BLACK);
@@ -808,22 +751,22 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
 
     // Decide which level in menu is active and which adressing value to modify
     if (!val_adjust){
-      if      (menu_lvl == 1)  {lvl1_val = mod_val(bottom_reached, modify_val_percent, pos_edge_up, pos_edge_dwn, lvl1_val);
+      if      (menu_lvl == 1)  {lvl1_val = mod_val(bottom_reached, modify_val_percent, up.posEdge(), down.posEdge(), lvl1_val);
                                 current_lvl_val = lvl1_val;
                                 lvl2_val = 1;                                                                               }   // 1st level - Main menu
-      else if (menu_lvl == 2)  {lvl2_val = mod_val(bottom_reached, modify_val_percent, pos_edge_up, pos_edge_dwn, lvl2_val);
+      else if (menu_lvl == 2)  {lvl2_val = mod_val(bottom_reached, modify_val_percent, up.posEdge(), down.posEdge(), lvl2_val);
                                 current_lvl_val = lvl2_val;
                                 lvl3_val = 1;                                                                               }   // 2nd level
-      else if (menu_lvl == 3)  {lvl3_val = mod_val(bottom_reached, modify_val_percent, pos_edge_up, pos_edge_dwn, lvl3_val);
+      else if (menu_lvl == 3)  {lvl3_val = mod_val(bottom_reached, modify_val_percent, up.posEdge(), down.posEdge(), lvl3_val);
                                 current_lvl_val = lvl3_val;
                                 lvl4_val = 1;                                                                               }   // 3rd level
-      else if (menu_lvl == 4)  {lvl4_val = mod_val(bottom_reached, modify_val_percent, pos_edge_up, pos_edge_dwn, lvl4_val);
+      else if (menu_lvl == 4)  {lvl4_val = mod_val(bottom_reached, modify_val_percent, up.posEdge(), down.posEdge(), lvl4_val);
                                 current_lvl_val = lvl4_val;
                                 lvl5_val = 1;                                                                               }   // 4th level
-      else if (menu_lvl == 5)  {lvl5_val = mod_val(bottom_reached, modify_val_percent, pos_edge_up, pos_edge_dwn, lvl5_val);
+      else if (menu_lvl == 5)  {lvl5_val = mod_val(bottom_reached, modify_val_percent, up.posEdge(), down.posEdge(), lvl5_val);
                                 current_lvl_val = lvl5_val;
                                 lvl6_val = 1;                                                                               }   // 5th level
-      else if (menu_lvl == 6)  {lvl6_val = mod_val(bottom_reached, modify_val_percent, pos_edge_up, pos_edge_dwn, lvl6_val);
+      else if (menu_lvl == 6)  {lvl6_val = mod_val(bottom_reached, modify_val_percent, up.posEdge(), down.posEdge(), lvl6_val);
                                 current_lvl_val = lvl6_val;                                                                 }   // 6th level
     }
   }
@@ -862,7 +805,7 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
                                            menu_adress[0] = 2;
                                            current_lvl_val = 1;}                              // Must be added to avoid duplicating menu lines when returning} 
           else if (menu_adress[2] == 2)   {                                                   // 3.1.2 - Dim adjust view
-                                           roomlight_intensity_percentage = mod_val(LOW, HIGH, pos_edge_up, pos_edge_dwn, roomlight_intensity_percentage);
+                                           roomlight_intensity_percentage = mod_val(LOW, HIGH, up.posEdge(), down.posEdge(), roomlight_intensity_percentage);
                                            adjusted_value = roomlight_intensity_percentage;  
                                            adjusted_value_name = "Light intensity";
                                            val_adjust = HIGH;
@@ -893,7 +836,7 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
                                             menu_lvl = 2;
                                             menu_adress[0] = 2;
                                             current_lvl_val = 1;}                             // 3.3.1 - Override auto time view
-          else if (menu_adress[2] == 2)   { fan_power_percent = mod_val(LOW, HIGH, pos_edge_up, pos_edge_dwn, fan_power_percent); // 3.3.2 - Fan power window
+          else if (menu_adress[2] == 2)   { fan_power_percent = mod_val(LOW, HIGH, up.posEdge(), down.posEdge(), fan_power_percent); // 3.3.2 - Fan power window
                                             adjusted_value = fan_power_percent;  
                                             adjusted_value_name = "Fan power";
                                             val_adjust = HIGH;
@@ -907,7 +850,7 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
                                             menu_adress[0] = 2;
                                             current_lvl_val = 1;}          
           else if (menu_adress[2] == 2)   {                                                   // 3.4.2 - Opening percent
-                                            airing_opening = mod_window(pos_edge_up, pos_edge_dwn, airing_opening); 
+                                            airing_opening = mod_window(up.posEdge(), down.posEdge(), airing_opening); 
                                             adjusted_value = airing_opening;  
                                             adjusted_value_name = "Window opening";
                                             val_adjust = HIGH;
@@ -921,7 +864,7 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
           if          (menu_adress[2] == 1)   {                                                  // 4.2.1     - Weekly plan menu 
                                                 temperature_profile = menu_adress[3] - 1;
                                                 temperature_set = temperatures[temperature_profile];
-                                                temperature_set = mod_temp(pos_edge_up, pos_edge_dwn, temperature_set);
+                                                temperature_set = mod_temp(up.posEdge(), down.posEdge(), temperature_set);
                                                 temp_adjust = HIGH;
                                                 deep_end_reached = HIGH;}
 
@@ -974,8 +917,8 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
   }
 
   else if(!screensaver){                                  // If no "special" window needs to be displayed, display menu with correct cathegories
-    display_menu(current_lvl_val, current_vector);}
-  
+    display_menu(current_lvl_val, current_vector);
+  }
 
   // MENU: Check if last item in menu is reached. If so, it is not possible to scroll further down
   if (menu_adress[menu_adress[0]] == current_vector.size()){ // Was menu_lvl in stead of menu_adress[0]
@@ -1015,10 +958,10 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
   // Get correct temp from 1-sensor, 2-MQTT, 3-weekly plan
   
   if (long_absence){
-    roomControl.setLongAbsence();             // Start long absence program
+    roomControl.setLongAbsence();                         // Start long absence program
     roomControl.updateTemperatures(temperature_read_c, temp_outdoor, temperatures[3]);}
   else {
-    roomControl.resetLongAbsence();           // Stop long absence program
+    roomControl.resetLongAbsence();                       // Stop long absence program
     roomControl.updateTemperatures(temperature_read_c, temp_outdoor, temperatures[temperature_weekplan[roomControl.getWeekday()][hour()] - 1]);
   }
 
@@ -1057,66 +1000,24 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
   // TEMPERATURE: Control heating
   digitalWrite(pin_heating_LED, roomControl.autoHeating());
   
-  
-  // FAN
+  // FAN: Auto / manual
   if (fan_override_auto)    {ledcWrite(CHANNEL_FAN, fan_power_percent * 255 /100);}           // Manual control
   else                      {ledcWrite(CHANNEL_FAN, roomControl.fanPowerAuto()* 255 /100);}   // Automatic control
 
-  // AIRING
+  // AIRING: Auto / manual
   if (airing_override_auto) {servo.write(airing_opening);}                                    // Manual control
   else                      {servo.write(roomControl.windowDegreesAuto());}                   // Automatic control
 
-  for (int i = 0; i < 26; i++){
-    consumption_package_MQTT[i] = roomControl.returnTodaysConsumption()[i]; 
-  }
-  Serial.print("Todays consumption plan: "); 
   
-  for (int i = 0; i < 26; i++){
-    Serial.print(consumption_package_MQTT[i]);
-    Serial.print(", ");
-  }
-  Serial.println("");
-
-  Serial.print("YEsterdays consumption plan: "); 
-  for (int i = 0; i < 26; i++){
-    Serial.print(roomControl.returnYesterdaysConsumption()[i]);
-    Serial.print(", ");
-  }
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.print("Outdoor temp: ");
-  Serial.println(temp_outdoor);
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
-  Serial.println("");
- 
   /////////////////////////////////////////////////////////////////////////////////////
   //                                                                                 //
   //                             GENERAL END-OF-LOOP TASKS                           //
   //                                                                                 //
   /////////////////////////////////////////////////////////////////////////////////////
 
-  // Set button states to "old button state" for comparison next scan
-  prev_buttonstate_up = buttonstate_up;
-  prev_buttonstate_dwn = buttonstate_dwn;
-  prev_buttonstate_lft = buttonstate_lft;
-  prev_buttonstate_rgt = buttonstate_rgt;
 
   // Set current menu adress as previous menu adress for comparison next scan
   prev_menu_adress = menu_adress;
-
-  // Set current CoT values as previous CoT values for comparison next scan
-  cot_light_toggle_prev   = cot_light_toggle;         // Light        - toggle
-  cot_light_dimming_prev  = cot_light_dimming;        // Light        - dim
-  cot_temp_home_prev      = cot_temp_home;            // Temperature  - home
-  cot_temp_away_prev      = cot_temp_away;            // Temperature  - away
-  cot_temp_night_prev     = cot_temp_night;           // Temperature  - night
-  cot_temp_long_abs_prev  = cot_temp_long_abs;        // Temperature  - long absence
-  cot_fan_power_prev      = cot_fan_power;            // Fan          - power
-  cot_airing_opening_prev = cot_airing_opening;       // Aiting       - opening (degrees)
 
   // TIME
   millis_prev = millis();
@@ -1137,7 +1038,7 @@ mqtt.pub(mqtt_message, MQTT_TOPIC, false);
   }
 }
 
-void IRAM_ATTR ISR(){                                 // ISR function for "waking" from screensaver mode.
+void IRAM_ATTR ISR(){                                     // ISR function for "waking" from screensaver mode.
   screensaver_interrupt   = HIGH;
 }
 
@@ -1158,23 +1059,8 @@ void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
     }
 }
 
-// ROOM CONTROL: Instanciate object and set initial parameters
 
-// MQTT: mal for å sende data
-/*
-mqtt_message.resiver = "Hub";
-mqtt_message.header = Doorbell;
-mqtt_message.room = Entry;
-mqtt_message.data_int[0] = { "key", 10 };
-mqtt_message.data_int[1] = { "key", 10 };
-mqtt.pub(mqtt_message, MQTT_TOPIC, false);
-*/
-
-//
- 
-RTC_DATA_ATTR int x = 0;  // Variable saved even when in deep sleep
-
-#ifdef DEBUB
+#ifdef DEBUG
  
 #endif
   

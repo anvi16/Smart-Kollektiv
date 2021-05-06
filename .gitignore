@@ -3,4 +3,9 @@ Debug/
 __vm/
 *.vcxproj
 CppProperties.json
-
+.spyproject/
+__pycache__/
+*.vcxproj.filters
+*.vcxproj.user
+*.pyc
+Programmer/Rpi_hub/__pycache__/Outdoor_temp.cpython-38.pyc

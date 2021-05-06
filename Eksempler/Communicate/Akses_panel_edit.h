@@ -12,9 +12,10 @@
 #include "MQTT_Class.h"
 #include <Keypad.h>
 #include "mbedtls/md.h";
+#include "Oled_display.h"
 
 Mqtt_message access_panel_message;
-MQTT mqtt_access_panel;
+MQTT* mqtt_access_panel;
 
 
 const byte ROWS = 4;
@@ -38,7 +39,7 @@ int      button_delay = 30;   // 30ms delay
 int      button_menu_delay = 2000; // 2sek delay
 
 String user_card[users];
-String user_code[users];  // "3e8a85792028bdeeb97650328ac3394a32eab166740c08808f603f0541517e2a"
+String user_code[users]; 
 
 String code;
 int key_nr;
@@ -93,27 +94,27 @@ bool Access_panel_check_password() {
 }
 
 
-void Access_panel_push_code(String user, String item, String key) {
-    access_panel_message.resiver = "HuB";
-    access_panel_message.room = Entry;
-    access_panel_message.header = Access_controll;
-    if(item == "card") access_panel_message.data_String[0] = { "user_cards", "push" };
-    if(item == "code") access_panel_message.data_String[0] = { "user_codes", "push" };
-    access_panel_message.data_String[1] = { "user", user };
-    access_panel_message.data_String[2] = { "key" , key };
+void Access_panel_push_tolk(String user, String item, String card = "", String code = "") {
+    access_panel_message.resiver        = "Hub";
+    access_panel_message.room           = Entry;
+    access_panel_message.header         = Access_controll;
+    access_panel_message.data_String[0] = { "request", "push" };
+    access_panel_message.data_String[0] = { "user"   ,  user  };
+    access_panel_message.data_String[1] = { "card"   ,  card  };
+    access_panel_message.data_String[2] = { "code"   ,  code  };
 
-    mqtt_access_panel.pub(access_panel_message);
+    mqtt_access_panel->pub(access_panel_message);
 }
 
 
-void Access_panel_pull_user_code() {
-    access_panel_message.resiver = "HuB";
-    access_panel_message.room = Entry;
-    access_panel_message.header = Access_controll;
-    access_panel_message.data_String[0] = { "user_cards", "pull" };
-    access_panel_message.data_String[1] = { "user_codes", "pull" };
+void Access_panel_pull_tolk() {
+    access_panel_message.resiver        = "Hub";
+    access_panel_message.room           = Entry;
+    access_panel_message.header         = Access_controll;
+    access_panel_message.data_String[0] = { "request"  , "pull" };
+    access_panel_message.data_String[1] = { "type_tolk", "card and code" };
 
-    mqtt_access_panel.pub(access_panel_message);
+    mqtt_access_panel->pub(access_panel_message);
     wait = true;
 }
 
@@ -168,24 +169,27 @@ void Access_panel_keypad_event(char key_press) {
 }
 
 
-void Access_panel_store_keys( String cards[], String codes[] ) {
+void Access_panel_store_tolk(String cards[], String codes[] ) {
     if (cards[0] != "") {
-        for (int i = 0; i < users; i++) { user_card[i] = cards[i]; Serial.println(user_card[i]); }
+        for (int i = 0; i < users; i++) user_card[i] = cards[i];
     }
     if (codes[0] != "") {
         for (int i = 0; i < users; i++) user_code[i] = codes[i];
     }
-    wait == false;
 }
 
 
-void Access_panel_setup() {
+void Access_panel_setup(MQTT& _mqtt) {
+    mqtt_access_panel = &_mqtt;
+
     Serial.begin(115200);
+    Oled_display_setup();
+
     keypad.addEventListener(Access_panel_keypad_event);       // Add an event listener.
     keypad.setHoldTime(button_menu_delay);
     keypad.setDebounceTime(button_delay);
     Access_panel_sha256("");
-    Access_panel_pull_user_code();
+    Access_panel_pull_tolk();
 
     //while(wait){}
     Serial.println("Codes pulled");

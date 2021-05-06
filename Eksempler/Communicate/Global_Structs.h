@@ -35,7 +35,8 @@ enum Header {
 	Heat				= 0x04,
 	Energi_consumption	= 0x05,
 	Entry_logging		= 0x06,
-	Acsess_controll		= 0x07
+	Access_controll		= 0x07,
+	Room_Controller		= 0x08
 };
 
 
@@ -58,8 +59,8 @@ struct Mqtt_message
 	const char* resiver;
 	Header		header;
 	Room		room;
-	Data_int	data_int[10];
-	Data_String data_String[10];
+	Data_int	data_int[15];
+	Data_String data_String[15];
 
 };
 

@@ -2,7 +2,7 @@
 #define Global_Structs_H
 
 enum Room {
-	NaN = 0x00,
+	NaN		   = 0x00,
 	Dormroom_1 = 0x01,
 	Dormroom_2 = 0x02,
 	Dormroom_3 = 0x03,
@@ -10,9 +10,9 @@ enum Room {
 	Dormroom_5 = 0x05,
 	Dormroom_6 = 0x06,
 	Livingroom = 0x07,
-	Kitchen = 0x08,
-	Bathroom = 0x09,
-	Entry = 0x0a
+	Kitchen	   = 0x08,
+	Bathroom   = 0x09,
+	Entry      = 0x0a
 };
 
 enum Header {
@@ -26,27 +26,30 @@ enum Header {
 	Acsess_controll		= 0x07
 };
 
-typedef struct
+
+struct Data_int
 {
 	String key;
 	int value;
-} Data_int;
+};
 
-typedef struct
+
+struct Data_String
 {
 	String key;
 	String value;
-} Data_String;
+};
+
 
 struct Mqtt_message
 {
 	const char* resiver;
-	Room room;
-	Header header;
-	Data_int data_int[10];
+	Room		room;
+	Header		header;
+	Data_int	data_int[10];
 	Data_String data_String[10];
-};
 
+};
 
 
 

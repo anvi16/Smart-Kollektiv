@@ -19,12 +19,14 @@ Description:
 #define DEBUG
 
 Mqtt_message access_log_message;
-MQTT mqtt_access_log;
+MQTT* mqtt_access_log;
 
 enum State {step1, step2, step3};
 
 
-void Access_log_setup() {
+void Access_log_setup(MQTT& _mqtt) {
+	mqtt_access_log = &_mqtt;
+
 	pinMode(DOOR_CHECK, INPUT);
 	pinMode(DOOR_SENSOR_INNER, INPUT);
 	pinMode(DOOR_SENSOR_OUTER, INPUT);

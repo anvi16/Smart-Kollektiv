@@ -44,4 +44,34 @@ void Oled_display_text(String text, int x = 0, int y = 0, uint8_t size = 1, uint
     display.println(text);
 }
 
+void Oled_display_dot_clear(int x = 0, int y = 0, uint8_t color = SSD1306_WHITE) {
+    display.clearDisplay();
+    display.drawPixel(x, y, color);
+}
+
+void Oled_display_dot(int x = 0, int y = 0, uint8_t color = SSD1306_WHITE) {
+    display.drawPixel(x, y, color);
+}
+
+void Oled_display_line_clear(int x = 0, int y = 0, int length = 10, int rot = 0, uint8_t color = SSD1306_WHITE) {
+    display.clearDisplay();
+    display.setCursor(x, y);
+    for (int i = 0; i < length; i++) {
+        if (rot) display.drawPixel(x, y + i, color); // Vertical
+        else display.drawPixel(x + i, y, color);    // Horizontal
+    }
+    display.display();
+}
+
+void Oled_display_line(int x = 0, int y = 0, int length = 10, int rot = 0, uint8_t color = SSD1306_WHITE) {
+    display.setCursor(x, y);
+    for (int i = 0; i < length; i++) {
+        if (rot) display.drawPixel(x, y + i, color); // Vertical
+        else display.drawPixel(x + i, y, color);    // Horizontal
+    }
+    display.display();
+}
+
+
+
 #endif

@@ -35,7 +35,7 @@ enum Header {
 	Heat				= 0x04,
 	Energi_consumption	= 0x05,
 	Entry_logging		= 0x06,
-	Acsess_controll		= 0x07,
+	Access_controll		= 0x07,
 	Room_Controller		= 0x08
 };
 

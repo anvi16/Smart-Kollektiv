@@ -10,7 +10,7 @@ Description:
 #ifndef MQTT_H
 #define MQTT_H
 
-#define MQTT_MAX_PACKET_SIZE 256
+#define MQTT_MAX_PACKET_SIZE 1500
 #define ARDUINOJSON_ENABLE_STD_STREAM 0
 
 #include "Global_Structs.h"

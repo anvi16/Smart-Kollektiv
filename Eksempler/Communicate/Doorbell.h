@@ -15,10 +15,10 @@ Description:
 #include "Oled_display.h"
 
 #define USER_ARRAY_LENGTH 6
-#define BUTTON_UP         13 
-#define BUTTON_ENTER      14 
-#define BUTTON_DOWN       12
-#define OUTER_DOOR        27
+#define BUTTON_UP         4 
+#define BUTTON_ENTER      16 
+#define BUTTON_DOWN       17
+#define OUTER_DOOR        15
 
 
 uint32_t last_debounce_time = 0; 
@@ -41,7 +41,7 @@ String users[USER_ARRAY_LENGTH] = { "Ole", "Lise", "Kari", "Henrik", "Karro", "S
 
 
 Mqtt_message doorbell_message;
-MQTT mqtt_doorbell;
+MQTT* mqtt_doorbell;
 
 
 // pre declare functions
@@ -50,16 +50,17 @@ void Doorbell_call_user(String user);
 void Doorbell_scorll();
 void Doorbell_send(String user);
 void Doorbell_recive(bool reply);
+void Doorbell_open_door();
 
 
-
-
-void Doorbell_setup() {
+void Doorbell_setup(MQTT& _mqtt) {
+    mqtt_doorbell = &_mqtt;
 	pinMode(BUTTON_UP, INPUT);
 	pinMode(BUTTON_ENTER, INPUT);
 	pinMode(BUTTON_DOWN, INPUT);
     pinMode(OUTER_DOOR, OUTPUT);
 
+    Oled_display_setup();
     Doorbell_show();
 }
 
@@ -178,15 +179,14 @@ void Doorbell_send(String user) {
     doorbell_message.room = Entry;
     doorbell_message.header = Doorbell;
 
-    mqtt_doorbell.pub(doorbell_message, MQTT_TOPIC, false);
+    mqtt_doorbell->pub(doorbell_message, MQTT_TOPIC, false);
 }
 
 
 void Doorbell_recive(bool reply) {
     if (reply) {
         Oled_display_text_clear("Welcome", 23, 22);
-        Serial.println("Door open");
-        digitalWrite(OUTER_DOOR, HIGH);
+        Doorbell_open_door();
     }
     else {
         size_t len = users[index_user_array].length();
@@ -200,4 +200,11 @@ void Doorbell_recive(bool reply) {
     Doorbell_show();
 }
 
+
+void Doorbell_open_door() {
+    Serial.println("Door open");
+    digitalWrite(OUTER_DOOR, HIGH);
+    // delay door
+    digitalWrite(OUTER_DOOR, LOW);
+}
 #endif

@@ -47,6 +47,12 @@ void Button::setState(bool state){
 
 }
 
+// Returns the current state of the button
+bool Button::readState(){
+    
+    return buttonState;
+}
+
 
 
 // POSITIVE EDGE

@@ -4,6 +4,9 @@
    Smart_kollektiv: Acsses.
 */
 
+#ifndef ACCESS_PANEL.H
+#define ACCESS_PANEL.H
+
 // Globals
 #include "Globals.h"
 
@@ -46,7 +49,7 @@ int   servo_Pin = SERVO_PIN;
 
 
 // Door
-const uint8_t door_check = DOOR_CHECK;
+extern const uint8_t door_check; // Import door_check from Access_log.h
 
 
 // OLED Display
@@ -99,7 +102,7 @@ void   Access_panel_pull_tolk();
 
 
 
-///////////////// Start program ///////////////
+
 
 void Access_panel_setup(MQTT& _mqtt) {
 
@@ -250,7 +253,7 @@ bool Access_panel_keypad_loop(char key_press) {
         if (user_id_at_tolk_check != 0) {
 
             if (!set_new_tolk_check) {
-                Access_panel_open_Door();
+                Access_panel_open_door();
 
                 Serial.println("LE GOW");
 
@@ -294,7 +297,7 @@ bool Access_panel_read_card() {
         if (user_id_at_tolk_check != 0) {
 
             if (!set_new_tolk_check) {
-                Access_panel_open_Door();
+                Access_panel_open_door();
 
                 Serial.println("LE GOW");
 
@@ -406,3 +409,5 @@ void Access_panel_pull_tolk() {
 
     mqtt_access_panel->pub(access_panel_message);
 }
+
+#endif

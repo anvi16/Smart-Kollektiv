@@ -12,11 +12,9 @@ Description:
 
 #include "MQTT_Class.h"
 
-#define DOOR_CHECK 34
-#define DOOR_SENSOR_INNER 35
-#define DOOR_SENSOR_OUTER 32
-
-#define DEBUG
+const uint8_t door_check		= DOOR_CHECK;
+const uint8_t door_sensor_inner = DOOR_SENSOR_INNER;
+const uint8_t dooe_sensor_outer = DOOR_SENSOR_OUTER;
 
 Mqtt_message access_log_message;
 MQTT* mqtt_access_log;
@@ -27,9 +25,9 @@ enum Stage {step1, step2, step3};
 void Access_log_setup(MQTT& _mqtt) {
 	mqtt_access_log = &_mqtt;
 
-	pinMode(DOOR_CHECK, INPUT);
-	pinMode(DOOR_SENSOR_INNER, INPUT);
-	pinMode(DOOR_SENSOR_OUTER, INPUT);
+	pinMode(door_check, INPUT);
+	pinMode(door_sensor_inner, INPUT);
+	pinMode(dooe_sensor_outer, INPUT);
 
 }
 
@@ -45,8 +43,8 @@ int person = 0;
 
 bool new_read;
 
-bool door_sensor_inner;
-bool door_sensor_outer;
+bool door_sensor_inner_read;
+bool door_sensor_outer_read;
 
 bool last_door_sensor_inner;
 bool last_door_sensor_outer;
@@ -54,15 +52,15 @@ bool last_door_sensor_outer;
 bool person_in;
 bool person_out;
 
-bool inner_read;
-bool outer_read;
+bool inner_true;
+bool outer_true;
 
 Stage stage = step1;
 
 
 void Access_log_counter_reset() {
-	outer_read = false;
-	inner_read = false;
+	outer_true = false;
+	inner_true = false;
 	person_in  = false;
 	person_out = false;
 	stage = step1;
@@ -70,25 +68,25 @@ void Access_log_counter_reset() {
 
 
 void Access_log_counter() {
-		door_sensor_inner = digitalRead(DOOR_SENSOR_INNER);
-		door_sensor_outer = digitalRead(DOOR_SENSOR_OUTER);
+		door_sensor_inner_read = digitalRead(DOOR_SENSOR_INNER);
+		door_sensor_outer_read = digitalRead(DOOR_SENSOR_OUTER);
 
 	switch (stage) {
 	case step1:
 		if (new_read) {
-			if (door_sensor_inner) inner_read = true;
-			else if (door_sensor_outer) outer_read = true;
+			if (door_sensor_inner_read) inner_true = true;
+			else if (door_sensor_outer_read) outer_true = true;
 	    }
 
-		if (inner_read || outer_read) {
+		if (inner_true || outer_true) {
 			last_read = millis();
 			stage = step2;
 		}
 		break;
 
 	case step2:
-		if		(outer_read && door_sensor_inner) { person_in  = true; }
-		else if (inner_read && door_sensor_outer) { person_out = true; }
+		if		(outer_true && door_sensor_inner_read) { person_in  = true; }
+		else if (inner_true && door_sensor_outer_read) { person_out = true; }
 
 		if (person_in || person_out) {
 			door_timer = millis();
@@ -114,7 +112,7 @@ void Access_log_counter() {
 		if (door_timer + door_timer_delay < millis()) { Access_log_counter_reset(); }
 		break;
 	}
-	if (!door_sensor_inner && !door_sensor_outer && last_count + last_count_delay < millis()) {
+	if (!door_sensor_inner_read && !door_sensor_outer_read && last_count + last_count_delay < millis()) {
 		new_read = true;
 	}
 }

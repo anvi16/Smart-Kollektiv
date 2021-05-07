@@ -16,6 +16,11 @@ MQTT::MQTT() {
 }
 
 
+WiFiClient MQTT::get_wifi_inst() {
+    return wifiClient;
+}
+
+
 void MQTT::sub(const char* MQTT_SUB_TOPIC) {   // Subscribe to desirable topics
     client.subscribe(MQTT_SUB_TOPIC);
 }

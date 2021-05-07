@@ -23,6 +23,7 @@ extern const char* MQTT_TOPIC;
 class MQTT {
 public:
 	MQTT();
+	WiFiClient MQTT::get_wifi_inst();
 	void sub(const char* MQTT_SUB_TOPIC);
 	void pub(Mqtt_message& mqtt_message, const char* MQTT_PUB_TOPIC = MQTT_TOPIC, bool retain = false);
 	void setup(const char* _WIFI_SSID, const char* _WIFI_PASSWORD, const char* MQTT_SERVER_IP, const uint16_t MQTT_SERVER_PORT, void (*callback)(char*, uint8_t*, unsigned int));

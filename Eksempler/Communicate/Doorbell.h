@@ -13,7 +13,8 @@ Description:
 
 #include "MQTT_Class.h"
 #include "Oled_display.h"
-#include "Access_panel.h" // Import Open door
+
+extern void Access_panel_open_door(); // Import Open door
 
 const uint8_t user_array_length = USERS;
 const uint8_t button_up         = BUTTON_UP;

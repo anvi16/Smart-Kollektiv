@@ -8,11 +8,12 @@ Description:
 *************************************************/
 
 
-#ifndef Global_H
-#define Global_H
+#ifndef Globals_H
+#define Globals_H
 
 #include <Arduino.h>
 
+//#define DEBUG // define for debug
 
 /////// I/O define pins ///////
 // Number of users

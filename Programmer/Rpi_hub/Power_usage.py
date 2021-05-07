@@ -115,7 +115,11 @@ def Handel_power_usages(consumption, ID, room=float("NaN"), booked=float("NaN"))
             if (int(kWh) != 0):
                 average_consumption += int(kWh)
                 hours += 1
-        average_consumption = average_consumption / hours
+        try:
+            average_consumption = average_consumption / hours
+        except ZeroDivisionError:
+            average_consumption = 0
+            
     else:
         average_consumption = int(consumption)
         
@@ -130,7 +134,7 @@ if __name__ == "__main__":
     
     Handel_power_usages("50", 'user4', 'Livingroom')
     
-    list2 = "10,10,10,10,30,0,0,0"
+    list2 = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
     
     Handel_power_usages(list2, 'user2', 'Livingroom')
     

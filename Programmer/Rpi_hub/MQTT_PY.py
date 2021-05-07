@@ -99,15 +99,15 @@ def Access_panel_push(cards, codes):
 def Outdoor_temp_send(temp):
     
     message = {
-       "id" : "All",
+       "id" : "Rc_dorm1",
        "room" : Room.All,
        "header" : Header.Room_Controller,
-       "data_int" : { "Outdoor_temp":temp }
+       "data_int" : { "Outdoor_temp": temp }
     }
     
     message_json = json.dumps(message)
 
-    client.publish(topic, message_json)
+    client.publish(topic, message_json, True)
 
 
 
@@ -124,25 +124,25 @@ def on_message(client, userdata, message):
             
             if(payload["room"] <= 6 and payload["room"] > 0):
                 consumption = payload["data_String"]["todaysCons"]
-                user        = "user"+payload["room"]
+                #user        = "user"+payload["room"]
                 room        = payload["room"]
                 booked      = float("NaN")
                 
                 if payload["room"] == Room.Bathroom:
                     booked = payload["booked"]
                     
-                power_usage.Handel_power_usages(consumption, user, room, booked)
+                #power_usage.Handel_power_usages(consumption, user, room, booked)
                 
             else:
                 consumption = payload["data_String"]["todaysCons"]
-                user        = "user"+payload["room"]
+                #user        = "user"+payload["room"]
                 room        = payload["room"]
                 booked      = float("NaN")
                 
                 if payload["room"] == Room.Bathroom:
                     booked = payload["booked"]
                     
-                power_usage.Handel_power_usages(consumption, user, room, booked)
+                #power_usage.Handel_power_usages(consumption, user, room, booked)
             
             
             
@@ -195,12 +195,14 @@ time.sleep(2)
 try:
     while True:
         client.loop()
+        Outdoor_temp_send(10)
+        time.sleep(1)
 
 except KeyboardInterrupt:
     client.disconnect()
-except Exception as e:
-    print("error: ", e)
-    client.disconnect()
+#except Exception as e:
+#    print("error: ", e)
+#    client.disconnect()
         
         
 

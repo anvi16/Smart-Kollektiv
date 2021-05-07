@@ -159,7 +159,6 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   delay(5000);                                            // Allow WiFi to connenct
   
-
   // CoT: Set up CoT (Circus of Things). Will not skip to next step if WiFi is not connected, since CoT.begin() will delay eternally if no WiFi present
   if (WiFi.status() == WL_CONNECTED){                     // Execute if conencted to WiFi
     
@@ -289,7 +288,6 @@ void setup() {
     left.setState(digitalRead(pin_lft));
     right.setState(digitalRead(pin_rgt));
     
-
     if (right.posEdge()){                                 // Increase menu level
       menu_lvl ++;
       tft_main.fillScreen(TFT_BLACK);
@@ -299,7 +297,7 @@ void setup() {
     display_menu(current_lvl_val, id_room_list);
 
     if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, up.posEdge(), down.posEdge(), current_lvl_val);}
-    else if (menu_lvl == 2)  {id_room                         = (current_lvl_val);
+    else if (menu_lvl == 2)  {id_room                          = (current_lvl_val);
                               tft_main.fillScreen(TFT_BLACK);
                               display_setup_messages("Room","selected:", id_room_list[current_lvl_val - 1].c_str());
                               delay(READTIME);
@@ -692,9 +690,10 @@ void loop() {
                   String buffer_today;
 
                   // Fill buffer with consumption data in string format
-                  for (int i = 0; i < 26; i++){
+                  for (int i = 1; i < 26; i++){
                     buffer_today += String(consumption_package_MQTT[i]);
-                    buffer_today += ",";
+                    if (i < 25){
+                      buffer_today += ",";}
                   }
 
                   // Read yesterdays consumption
@@ -705,9 +704,10 @@ void loop() {
                   String buffer_yesterday;
 
                   // Fill buffer with consumption data in string format
-                  for (int i = 0; i < 26; i++){
+                  for (int i = 1; i < 26; i++){
                     buffer_yesterday += String(consumption_package_MQTT[i]);
-                    buffer_yesterday += ",";
+                    if (i < 25){
+                      buffer_yesterday += ",";}
                   }
                   // Create JSON to send via MQTT to RPi
                   mqtt_message.resiver = "Hub";

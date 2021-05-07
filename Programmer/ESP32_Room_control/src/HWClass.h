@@ -32,6 +32,7 @@ class Button{
 
     public:
         void            setState(bool);                 // Reads out the current button state. To be called in the start of every loop
+        bool            readState();                    // Returns the current state of the button
 
         bool            posEdge();                      // Positive edge detection
         unsigned long   posEdgeTS();                    // Positive edge detection timestamp

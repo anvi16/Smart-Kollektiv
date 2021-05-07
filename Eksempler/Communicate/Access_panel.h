@@ -75,8 +75,8 @@ String set_new_tolk_type;
 uint32_t time_door_cloded;
 int      door_close_delay = 5000; // 5 sek
 
-uint32_t new_tolk_menu;
-int      new_tolk_menu_delay = 30000;  // 30 sek
+uint32_t set_new_tolk;
+int      set_new_tolk_delay = 30000;  // 30 sek
 
 
 
@@ -90,6 +90,7 @@ void Access_panel_read_card();
 int Access_panel_check_tolk();
 String Access_panel_sha256(String tolk);
 void Access_panel_open_Door();
+void Access_panel_store_tolk(String cards[], String codes[]);
 void Access_panel_push_tolk(String user, String type_tolk, String tolk);
 void Access_panel_pull_tolk();
 
@@ -98,7 +99,7 @@ void Access_panel_pull_tolk();
 
 ///////////////// Start program ///////////////
 
-void setup(MQTT& _mqtt) {
+void Access_panel_setup(MQTT& _mqtt) {
 
     Serial.begin(115200);
 
@@ -128,7 +129,7 @@ void setup(MQTT& _mqtt) {
 
 
 
-void loop() {
+void Access_panel_loop() {
 
     char key = keypad.getKey();
 
@@ -140,7 +141,7 @@ void loop() {
         set_new_tolk_check = false;
 
      // Reset keypad presses
-        code_attempt = 0;
+        code_attempt = "";
         key_presses = 0;
     }
 
@@ -219,10 +220,10 @@ void Access_panel_set_new_tolk (char key_press) {
 
         case Send_tolk:
                                 if (set_new_tolk_type == "card") {
-                                    Access_panel_push_tolk(user_id_at_tolk_check, set_new_tolk_type, card_attempt);
+                                    Access_panel_push_tolk("user" + (String)user_id_at_tolk_check, set_new_tolk_type, card_attempt);
                                 }
                                 else if (set_new_tolk_type == "code") {
-                                    Access_panel_push_tolk(user_id_at_tolk_check, set_new_tolk_type, code_attempt);
+                                    Access_panel_push_tolk("user" + (String)user_id_at_tolk_check, set_new_tolk_type, code_attempt);
                                 }
                                 card_attempt = "";
                                 code_attempt = "";
@@ -297,7 +298,7 @@ bool Access_panel_read_card() {
                 card_attempt = "";
             }
 
-            return 1;
+            return true;
         }
         else {
             Serial.println("Nope");
@@ -305,7 +306,7 @@ bool Access_panel_read_card() {
         card_attempt = "";
     }
 
-    return 0;
+    return false;
 }
 
 
@@ -359,10 +360,19 @@ String Access_panel_sha256(String tolk) {
 
 
 void Access_panel_open_Door() {
-
-    now_time = millis();
     myservo.write(180);
 
+}
+
+
+
+void Access_panel_store_tolk(String cards[], String codes[]) {
+    if (cards[0] != "") {
+        for (int i = 0; i < users; i++) user_card[i] = cards[i];
+    }
+    if (codes[0] != "") {
+        for (int i = 0; i < users; i++) user_code[i] = codes[i];
+    }
 }
 
 

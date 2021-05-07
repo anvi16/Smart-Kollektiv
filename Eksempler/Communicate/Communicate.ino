@@ -8,10 +8,11 @@ Description:
         Test communication
 *************************************************/
 
+
 #include "MQTT_Class.h"
 #include "Doorbell.h"
 #include "Access_log.h"
-#include "Akses_panel_edit.h"
+#include "Access_panel.h"
 
 
 // Wifi: SSID, Password

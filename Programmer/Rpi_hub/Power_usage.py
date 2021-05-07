@@ -108,7 +108,7 @@ def Read_power_usage(ID, room, booked):
 def Handel_power_usages(consumption, ID, room=float("NaN"), booked=float("NaN")):
     average_consumption = 0
     hours = 0
-    
+  # If consumption is a comma seperated list, calculate the average
     if consumption.__contains__(","):
         consumption = consumption.split(",")
         for kWh in consumption:
@@ -118,9 +118,6 @@ def Handel_power_usages(consumption, ID, room=float("NaN"), booked=float("NaN"))
         average_consumption = average_consumption / hours
     else:
         average_consumption = int(consumption)
-        
-    print(average_consumption)
-    print(hours)
         
     current_value = Read_power_usage(ID, room, booked)
     new_value = average_consumption

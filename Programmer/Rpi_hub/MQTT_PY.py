@@ -43,12 +43,12 @@ class Room(enum.IntEnum):
     
 
 
-def Access_panel_store(user, card, code):
+def Access_panel_store(user, type_tolk, tolk):
     # Write tolk to user storage
-    if (card != ""):
-        user_tolk.store_card_id(user, card)
-    if (code != ""):
-        user_tolk.store_code(user, code)
+    if (type_tolk == "card"):
+        user_tolk.store_card_id(user, tolk)
+    if (type_tolk == "code"):
+        user_tolk.store_code(user, tolk)
         
         
     
@@ -67,11 +67,11 @@ def Access_panel_push(cards, codes):
         user_codes.append(user_tolk.get_code("user"+str(ID+1)))
     
     message = {
-      "id": "user1",
-      "room": 10,
-      "header": 7,
-      "data_String": {
-        "cards": [
+      "id" : "user1",
+      "room" : Room.Entry,
+      "header" : Header.Acsess_controll,
+      "data_String" : {
+        "cards" : [
           user_cards[0],
           user_cards[1],
           user_cards[2],
@@ -79,7 +79,7 @@ def Access_panel_push(cards, codes):
           user_cards[4],
           user_cards[5]
         ],
-        "codes": [
+        "codes" : [
           user_codes[0],
           user_codes[1],
           user_codes[2],
@@ -99,10 +99,10 @@ def Access_panel_push(cards, codes):
 def Outdoor_temp_send(temp):
     
     message = {
-       "id":"All",
-       "room":0,  #Room.All,
-       "header":8,  #Header.Room_Controller,
-       "data_int":{ "Outdoor_temp":temp }
+       "id" : "All",
+       "room" : Room.All,
+       "header" : Header.Room_Controller,
+       "data_int" : { "Outdoor_temp":temp }
     }
     
     message_json = json.dumps(message)
@@ -121,14 +121,28 @@ def on_message(client, userdata, message):
         
     ###### Handel doorbell messages ######
         if (payload["header"] == Header.Energi_consumption):
-            if(payload["room"] <= 6):
-                
-                
-                
-                Handel_power_usages( ,payload["room"], )
-            else:
             
-            Handel_power_usages( )
+            if(payload["room"] <= 6 and payload["room"] > 0):
+                consumption = payload["data_String"]["todaysCons"]
+                user        = "user"+payload["room"]
+                room        = payload["room"]
+                booked      = float("NaN")
+                
+                if payload["room"] == Room.Bathroom:
+                    booked = payload["booked"]
+                    
+                power_usage.Handel_power_usages(consumption, user, room, booked)
+                
+            else:
+                consumption = payload["data_String"]["todaysCons"]
+                user        = "user"+payload["room"]
+                room        = payload["room"]
+                booked      = float("NaN")
+                
+                if payload["room"] == Room.Bathroom:
+                    booked = payload["booked"]
+                    
+                power_usage.Handel_power_usages(consumption, user, room, booked)
             
             
             
@@ -136,20 +150,26 @@ def on_message(client, userdata, message):
         if (payload["header"] == Header.Acsess_controll):
             cards_pull = False
             codes_pull = False
+            
             if (payload["data_String"]["request"] == "pull"):
+                
                 if (payload["data_String"]["type_tolk"] == "card"):
                     cards_pull = True
+                    
                 if (payload["data_String"]["type_tolk"] == "code"):
                     codes_pull = True
+                    
                 if (payload["data_String"]["type_tolk"] == "card and code"):
                     cards_pull = True
                     codes_pull = True
+                    
                 Access_panel_push(cards_pull, codes_pull)
                 
             if (payload["data_String"]["request"] == "push"):
-                    Access_panel_store(payload["data_String"]["user"], payload["data_String"]["card"], payload["data_String"]["code"])
+                    Access_panel_store(payload["data_String"]["user"], payload["data_String"]["type_tolk"], payload["data_String"]["tolk"])
 
                 
+
 
 ###### Setup ######
 user_tolk.setup()

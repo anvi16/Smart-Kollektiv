@@ -86,7 +86,7 @@ void loop();
 void Access_panel_keypad_event(char key_press);
 void Access_panel_set_new_tolk(char key_press);
 bool Access_panel_keypad_loop(char key_press);
-void Access_panel_read_card();
+bool Access_panel_read_card();
 int Access_panel_check_tolk();
 String Access_panel_sha256(String tolk);
 void Access_panel_open_Door();

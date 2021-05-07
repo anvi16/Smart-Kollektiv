@@ -8,10 +8,47 @@ Description:
 *************************************************/
 
 
-#ifndef Global_Structs_H
-#define Global_Structs_H
+#ifndef Global_H
+#define Global_H
 
 #include <Arduino.h>
+
+
+/////// I/O define pins ///////
+// Number of users
+#define USERS 6
+
+
+// Access_panel
+  // RFID
+	#define SS_PIN 21
+	#define RST_PIN 22
+
+  // Keypad
+	#define ROW1 13
+	#define ROW2 12
+	#define ROW3 14
+	#define ROW4 27
+
+	#define COLS1 26
+	#define COLS2 25
+	#define COLS3 33
+
+  //Servo
+	#define SERVO_PIN 15
+
+// Access_log
+#define DOOR_CHECK		  34
+#define DOOR_SENSOR_INNER 35
+#define DOOR_SENSOR_OUTER 32
+
+// Doorbell
+#define BUTTON_UP         4 
+#define BUTTON_ENTER      16 
+#define BUTTON_DOWN       17
+
+
+
 
 enum Room {
 	NaN		   = 0x00,

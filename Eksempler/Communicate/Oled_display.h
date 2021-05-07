@@ -32,21 +32,21 @@ bool Oled_display_check_setup() {
 
 
 void Oled_display_setup() {
-    // Only setup onec
+ // Only setup onec
     if (!oled_setup) {
-        // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
         if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) { // Address 0x3D for 128x64
             Serial.println(F("SSD1306 allocation failed"));
             for (;;); // Don't proceed, loop forever
         }
 
-        // Set setup check to true
+     // Set setup check to true
         oled_setup = true;
 
-        // Show initial display buffer contents on the screen --
-          // the library initializes this with an Adafruit splash screen.
+     // Show initial display buffer contents on the screen --
+       // the library initializes this with an Adafruit splash screen.
         display.display();
-        //delay(2000); // Pause for 2 seconds
+      //delay(2000); // Pause for 2 seconds
     }
 }
 

@@ -13,13 +13,12 @@ Description:
 
 #include "MQTT_Class.h"
 #include "Oled_display.h"
+#include "Access_panel.h" // Import Open door
 
-#define USER_ARRAY_LENGTH 6
-#define BUTTON_UP         4 
-#define BUTTON_ENTER      16 
-#define BUTTON_DOWN       17
-#define OUTER_DOOR        15
-
+const uint8_t user_array_length = USERS;
+const uint8_t button_up         = BUTTON_UP;
+const uint8_t button_enter      = BUTTON_ENTER;
+const uint8_t button_down       = BUTTON_DOWN;
 
 uint32_t last_debounce_time = 0; 
 int      debounce_delay     = 20;
@@ -37,7 +36,7 @@ bool wait_for_responce;
 
 
 uint8_t index_user_array = 0;
-String users[USER_ARRAY_LENGTH] = { "Ole", "Lise", "Kari", "Henrik", "Karro", "Simen" };
+String user_names[user_array_length] = { "Ole", "Lise", "Kari", "Henrik", "Karro", "Simen" };
 
 
 Mqtt_message doorbell_message;
@@ -53,12 +52,14 @@ void Doorbell_recive(bool reply);
 void Doorbell_open_door();
 
 
+
 void Doorbell_setup(MQTT& _mqtt) {
+
     mqtt_doorbell = &_mqtt;
-	pinMode(BUTTON_UP, INPUT);
-	pinMode(BUTTON_ENTER, INPUT);
-	pinMode(BUTTON_DOWN, INPUT);
-    pinMode(OUTER_DOOR, OUTPUT);
+
+	pinMode(button_up, INPUT);
+	pinMode(button_enter, INPUT);
+	pinMode(button_down, INPUT);
 
     Oled_display_setup();
     Doorbell_show();
@@ -113,7 +114,7 @@ void Doorbell_loop() {
     // Handel user inputs and wait on call response
     if (button_change && !wait_for_responce) {
         if (button_enter_filtered) {
-            Doorbell_call_user(users[index_user_array]);
+            Doorbell_call_user(user_names[index_user_array]);
 
         }
         else if (button_up_filtered) {
@@ -123,7 +124,7 @@ void Doorbell_loop() {
             }
         }
         else if (button_down_filtered) {
-            if (index_user_array < USER_ARRAY_LENGTH - 1) {
+            if (index_user_array < user_array_length - 1) {
                 index_user_array++;
                 Doorbell_scorll();
             }
@@ -141,7 +142,7 @@ void Doorbell_show() {
 
     for (int i = 0; i < 6; i++) {
         display.setCursor(16, i * 17 + 2);
-        display.println(users[i]);
+        display.println(user_names[i]);
     }
     display.display();
 
@@ -153,7 +154,7 @@ void Doorbell_scorll() {
     display.setCursor(10, 3);
     for (int i = 0; i < 6 - index_user_array; i++) {
         display.setCursor(16, i * 17 + 2);
-        display.println(users[i + index_user_array]);
+        display.println(user_names[i + index_user_array]);
     }
     display.display();
 }
@@ -189,8 +190,8 @@ void Doorbell_recive(bool reply) {
         Doorbell_open_door();
     }
     else {
-        size_t len = users[index_user_array].length();
-        Oled_display_text_clear(users[index_user_array] + " is", SCREEN_WIDTH / 2 - len * 6 - 16, 13);
+        size_t len = user_names[index_user_array].length();
+        Oled_display_text_clear(user_names[index_user_array] + " is", SCREEN_WIDTH / 2 - len * 6 - 16, 13);
         Oled_display_text("not home", 17, 35);
         Serial.println("Door refused");
     }
@@ -203,8 +204,7 @@ void Doorbell_recive(bool reply) {
 
 void Doorbell_open_door() {
     Serial.println("Door open");
-    digitalWrite(OUTER_DOOR, HIGH);
-    // delay door
-    digitalWrite(OUTER_DOOR, LOW);
+    Access_panel_open_door();
+    
 }
 #endif

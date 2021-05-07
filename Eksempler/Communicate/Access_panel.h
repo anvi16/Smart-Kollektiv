@@ -4,12 +4,15 @@
    Smart_kollektiv: Acsses.
 */
 
-// Kort leser
+// Globals
+#include "Globals"
+
+const uint8_t users = USERS;
+
+// RFID
 #include <SPI.h>
 #include <MFRC522.h>
 
-#define SS_PIN 21
-#define RST_PIN 22
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 
@@ -26,8 +29,8 @@ char hexaKeys[ROWS][COLS] = {
   {'*', '0', '#'}
 };
 
-byte rowPins[ROWS] = { 32, 12, 9, 27 };
-byte colPins[COLS] = { 26, 25, 33 };
+byte rowPins[ROWS] = { ROW1, ROW2, ROW3, ROW4 };
+byte colPins[COLS] = { COLS1, COLS2, COLS3 };
 
 Keypad keypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
@@ -38,12 +41,13 @@ int      button_menu_delay = 2000; // 2sek delay
 // Servo
 #include <ESP32Servo.h>
 
-Servo    myservo;
-int      servoPin = 13;
+Servo myservo;
+int   servo_Pin = SERVO_PIN;
 
 
 // Door
-#include "Access_log.h"  // Import DOOR_CHECK
+const uint8_t door_check = DOOR_CHECK;
+
 
 // OLED Display
 #include "Oled_display.h"
@@ -52,8 +56,6 @@ int      servoPin = 13;
 // Encryption og MQTT
 #include "MQTT_Class.h"
 #include "mbedtls/md.h"; 
-
-#define users 6
 
 Mqtt_message access_panel_message;
 MQTT* mqtt_access_panel;
@@ -81,18 +83,18 @@ int      set_new_tolk_delay = 30000;  // 30 sek
 
 
 // Predeclare functiones
-void setup(MQTT& _mqtt);
-void loop();
-void Access_panel_keypad_event(char key_press);
-void Access_panel_set_new_tolk(char key_press);
-bool Access_panel_keypad_loop(char key_press);
-void Access_panel_read_card();
-int Access_panel_check_tolk();
+void   Access_panel_setup(MQTT& _mqtt);
+void   Access_panel_loop();
+void   Access_panel_keypad_event(char key_press);
+void   Access_panel_set_new_tolk(char key_press);
+bool   Access_panel_keypad_loop(char key_press);
+bool   Access_panel_read_card();
+int    Access_panel_check_tolk();
 String Access_panel_sha256(String tolk);
-void Access_panel_open_Door();
-void Access_panel_store_tolk(String cards[], String codes[]);
-void Access_panel_push_tolk(String user, String type_tolk, String tolk);
-void Access_panel_pull_tolk();
+void   Access_panel_open_door();
+void   Access_panel_store_tolk(String cards[], String codes[]);
+void   Access_panel_push_tolk(String user, String type_tolk, String tolk);
+void   Access_panel_pull_tolk();
 
 
 
@@ -120,7 +122,7 @@ void Access_panel_setup(MQTT& _mqtt) {
 
     // Servo
     myservo.setPeriodHertz(50);
-    myservo.attach(servoPin, 500, 2400);
+    myservo.attach(servo_Pin, 500, 2400);
 
     // Encryption
     Access_panel_sha256("");
@@ -146,7 +148,7 @@ void Access_panel_loop() {
     }
 
  // Lock door, but wait for it to close
-    bool door_closed = digitalRead(DOOR_CHECK);
+    bool door_closed = digitalRead(door_check);
 
     if (!door_closed) {
         time_door_cloded = millis();
@@ -160,7 +162,7 @@ void Access_panel_loop() {
 
 
 void Access_panel_keypad_event(char key_press) {
-
+    
     if (set_new_tolk_check) {
         Access_panel_set_new_tolk(key_press);
     }
@@ -265,6 +267,7 @@ bool Access_panel_keypad_loop(char key_press) {
         key_presses = 0;
     }
     else if (key_presses < 10) {
+        Serial.println(key_press);
         code_attempt += key_press;
         key_presses++;
     }
@@ -359,9 +362,9 @@ String Access_panel_sha256(String tolk) {
 
 
 
-void Access_panel_open_Door() {
+void Access_panel_open_door() {
     myservo.write(180);
-
+ // add buzzer
 }
 
 

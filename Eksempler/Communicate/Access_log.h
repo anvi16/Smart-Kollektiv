@@ -19,12 +19,14 @@ Description:
 #define DEBUG
 
 Mqtt_message access_log_message;
-MQTT mqtt_access_log;
+MQTT* mqtt_access_log;
 
-enum State {step1, step2, step3};
+enum Stage {step1, step2, step3};
 
 
-void Access_log_setup() {
+void Access_log_setup(MQTT& _mqtt) {
+	mqtt_access_log = &_mqtt;
+
 	pinMode(DOOR_CHECK, INPUT);
 	pinMode(DOOR_SENSOR_INNER, INPUT);
 	pinMode(DOOR_SENSOR_OUTER, INPUT);
@@ -55,7 +57,7 @@ bool person_out;
 bool inner_read;
 bool outer_read;
 
-State state = step1;
+Stage stage = step1;
 
 
 void Access_log_counter_reset() {
@@ -63,7 +65,7 @@ void Access_log_counter_reset() {
 	inner_read = false;
 	person_in  = false;
 	person_out = false;
-	state = step1;
+	stage = step1;
 }
 
 
@@ -71,7 +73,7 @@ void Access_log_counter() {
 		door_sensor_inner = digitalRead(DOOR_SENSOR_INNER);
 		door_sensor_outer = digitalRead(DOOR_SENSOR_OUTER);
 
-	switch (state) {
+	switch (stage) {
 	case step1:
 		if (new_read) {
 			if (door_sensor_inner) inner_read = true;
@@ -80,7 +82,7 @@ void Access_log_counter() {
 
 		if (inner_read || outer_read) {
 			last_read = millis();
-			state = step2;
+			stage = step2;
 		}
 		break;
 
@@ -91,7 +93,7 @@ void Access_log_counter() {
 		if (person_in || person_out) {
 			door_timer = millis();
 			new_read = false;
-			state = step3;
+			stage = step3;
 		}
 		else if (last_read + last_read_delay < millis()) { Access_log_counter_reset(); }
 		break;

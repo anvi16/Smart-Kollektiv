@@ -30,6 +30,12 @@
     <ClInclude Include="Doorbell.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Access_log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Oled_display.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MQTT_Class.cpp">

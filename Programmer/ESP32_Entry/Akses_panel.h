@@ -4,190 +4,392 @@
    Smart_kollektiv: Acsses.
 */
 
-//#define DEBUG  // <-- Define for debug 
+// Kort leser
+#include <SPI.h>
+#include <MFRC522.h>
 
-#include<CircusESP32Lib.h>
+#define SS_PIN 21
+#define RST_PIN 22
+MFRC522 rfid(SS_PIN, RST_PIN);
 
-char ssid[]        = "Telenor6619dyp";
-char password[]    = "josehome08";
-char server[]      = "www.circusofthings.com";
-char token[]       = "LED";
-char User1_Key_1[] = "6442";
-char User1_Key_2[] = "30385";
-char User1_Key_3[] = "8691";
-char User1_Key_4[] = "21957";
 
-CircusESP32Lib circusESP32(server,ssid,password);
+// Keypad
+#include <Keypad.h>
 
-    
-int button_pin0 = 2;
-int button_pin1 = 3;
-int button_pin2 = 4;
-int button_pin3 = 5;
-int button_pin4 = 6;
-int button_pin5 = 7;
-int button_pin6 = 8;
-int button_pin7 = 9;
-int button_pin8 = 10;
-int button_pin9 = 11;
+const byte ROWS = 4;
+const byte COLS = 3;
 
-int button_pinEnter = 12;
-int button_pinRemove = 13;
+char hexaKeys[ROWS][COLS] = {
+  {'1', '2', '3'},
+  {'4', '5', '6'},
+  {'7', '8', '9'},
+  {'*', '0', '#'}
+};
+
+byte rowPins[ROWS] = { 32, 12, 9, 27 };
+byte colPins[COLS] = { 26, 25, 33 };
+
+Keypad keypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
 int      button_delay      = 30;   // 30ms delay
 int      button_menu_delay = 2000; // 2sek delay
-uint32_t button_press_last = 0;
-int      last_pressed;
-bool     last_read_press;
 
 
-int user1_val_1, user1_val_2, user1_val_3, user1_val_4;
+// Servo
+#include <ESP32Servo.h>
 
-int key_nr;
-int code[4];
-int access_code1[4] = { 1, 3, 3, 4 };
-int access_code2[4] = { 1, 2, 3, 4 };
-int access_code3[4] = { 1, 0, 0, 0 };
-int access_code4[4] = { 4, 3, 2, 1 };
-int access_code5[4] = { 1, 0, 0, 0 };
-int access_code6[4] = { 1, 0, 0, 0 };
-
-//int access_code1[4] = {user1_val_1, user1_val_2, user1_val_3, user1_val_4} ;
+Servo    myservo;
+int      servoPin = 13;
 
 
-void setup() {
-    Serial.begin(9600);
-    pinMode(button_pin0, INPUT_PULLUP);
-    pinMode(button_pin1, INPUT_PULLUP);
-    pinMode(button_pin2, INPUT_PULLUP);
-    pinMode(button_pin3, INPUT_PULLUP);
-    pinMode(button_pin4, INPUT_PULLUP);
-    pinMode(button_pin5, INPUT_PULLUP);
-    pinMode(button_pin6, INPUT_PULLUP);
-    pinMode(button_pin7, INPUT_PULLUP);
-    pinMode(button_pin8, INPUT_PULLUP);
-    pinMode(button_pin9, INPUT_PULLUP);
-    pinMode(button_pinEnter,  INPUT_PULLUP);
-    pinMode(button_pinRemove, INPUT_PULLUP);
+// Door
+#include "Access_log.h"  // Import DOOR_CHECK
 
-    circusESP32.begin();
+// OLED Display
+#include "Oled_display.h"
+
+
+// Encryption og MQTT
+#include "MQTT_Class.h"
+#include "mbedtls/md.h"; 
+
+#define users 6
+
+Mqtt_message access_panel_message;
+MQTT* mqtt_access_panel;
+
+String user_card[users];
+String user_code[users];
+
+String card_attempt;
+String code_attempt;
+int    key_presses;
+
+bool   set_new_tolk_check = false;
+int    user_id_at_tolk_check;
+String set_new_tolk_type;
+
+
+// Timers
+
+uint32_t time_door_cloded;
+int      door_close_delay = 5000; // 5 sek
+
+uint32_t new_tolk_menu;
+int      new_tolk_menu_delay = 30000;  // 30 sek
+
+
+
+// Predeclare functiones
+void setup(MQTT& _mqtt);
+void loop();
+void Access_panel_keypad_event(char key_press);
+void Access_panel_set_new_tolk(char key_press);
+bool Access_panel_keypad_loop(char key_press);
+bool Access_panel_read_card();
+int Access_panel_check_tolk();
+String Access_panel_sha256(String tolk);
+void Access_panel_open_Door();
+void Access_panel_push_tolk(String user, String type_tolk, String tolk);
+void Access_panel_pull_tolk();
+
+
+
+
+///////////////// Start program ///////////////
+
+void setup(MQTT& _mqtt) {
+
+    Serial.begin(115200);
+
+    // Mqtt
+    mqtt_access_panel = &_mqtt;
+
+    // Oled display
+    Oled_display_setup();
+
+    // Keypad
+    keypad.addEventListener(Access_panel_keypad_event);  // Add an event listener.
+    keypad.setHoldTime(button_menu_delay);
+    keypad.setDebounceTime(button_delay);
+
+    // NFC scanner
+    SPI.begin();
+    rfid.PCD_Init();
+
+    // Servo
+    myservo.setPeriodHertz(50);
+    myservo.attach(servoPin, 500, 2400);
+
+    // Encryption
+    Access_panel_sha256("");
+    Access_panel_pull_tolk();
 }
+
+
 
 void loop() {
-    user1_val_1 = circusESP32.read(User1_Key_1, token);
-    user1_val_2 = circusESP32.read(User1_Key_2, token);
-    user1_val_3 = circusESP32.read(User1_Key_3, token);
-    user1_val_4 = circusESP32.read(User1_Key_4, token);
 
-    bool b0 = !digitalRead(button_pin0);
-    bool b1 = !digitalRead(button_pin1);
-    bool b2 = !digitalRead(button_pin2);
-    bool b3 = !digitalRead(button_pin3);
-    bool b4 = !digitalRead(button_pin4);
-    bool b5 = !digitalRead(button_pin5);
-    bool b6 = !digitalRead(button_pin6);
-    bool b7 = !digitalRead(button_pin7);
-    bool b8 = !digitalRead(button_pin8);
-    bool b9 = !digitalRead(button_pin9);
+    char key = keypad.getKey();
 
-    bool bE = !digitalRead(button_pinEnter);
-    bool bC = digitalRead(button_pinRemove);
+    if (rfid.PICC_IsNewCardPresent()) {
+        Access_panel_read_card();
+    }
+
+    if (set_new_tolk + set_new_tolk_delay < millis()) {
+        set_new_tolk_check = false;
+
+     // Reset keypad presses
+        code_attempt = 0;
+        key_presses = 0;
+    }
+
+ // Lock door, but wait for it to close
+    bool door_closed = digitalRead(DOOR_CHECK);
+
+    if (!door_closed) {
+        time_door_cloded = millis();
+    }
+
+    if (time_door_cloded + door_close_delay < millis()) {
+        myservo.write(0);
+    }
+}
 
 
-    bool Code_box[] = { b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, bE, bC };
 
-    for (int i = 0; i < 12; i++) {
-        if (Code_box[i] && !last_read_press && button_press_last + button_delay < millis()) {  // Check's for debounse and if button is not pressed long
-            button_press_last = millis();
-            last_pressed = i;
-            last_read_press = true;
-            if (i < 10 && key_nr < 4) { // Check's if butten is 0-9 and pressed four times
-                #ifdef DEBUG
-                    Serial.println(i);
-                #endif
-                code[key_nr] = i;
-                key_nr++;
-                break;
-            }
-            else if (bC) {
-                code[0] = 0;
-                code[1] = 0;
-                code[2] = 0;
-                code[3] = 0;
-                key_nr = 0;
-                #ifdef DEBUG
-                    Serial.println("Clear");
-                #endif
-            }
-            else if (bE) {
-                bool accept_the_code = false;
-                if      (Enter(access_code1)) accept_the_code = true;
-                else if (Enter(access_code2)) accept_the_code = true;
-                else if (Enter(access_code3)) accept_the_code = true;
-                else if (Enter(access_code4)) accept_the_code = true;
-                else if (Enter(access_code5)) accept_the_code = true;
-                else if (Enter(access_code6)) accept_the_code = true;
+void Access_panel_keypad_event(char key_press) {
 
-                if (accept_the_code) {
-                    Serial.println("LE GOW");
-                }
-                else {
-                    Serial.println("Nope");
-                }
-                key_nr = 0;
-            }
-        }
-        else {
-            if (last_pressed == 0 && button_press_last + button_menu_delay < millis()) {
-                button_press_last = millis();
-                // Reset all
-                code[0] = 0;
-                code[1] = 0;
-                code[2] = 0;
-                code[3] = 0;
-                key_nr = 0;
+    if (set_new_tolk_check) {
+        Access_panel_set_new_tolk(key_press);
+    }
+    else {
+        switch (keypad.getState()) {
+            case PRESSED:
+                            Access_panel_keypad_loop(key_press);
+                            break;
 
-                // Go to spesial menu //
-                Serial.println("Spesial menu");
-                ////////////////////////
-            }
-            else if (!Code_box[last_pressed]) {     // Check if button pressed is released
-                 last_read_press = false;
-            }
+            case HOLD:
+                            if (key_press == '0'){
+                                set_new_tolk_check = true;
+                                code_attempt = "";
+                                key_presses = 0;
+                            }
+                            break;
         }
     }
 }
 
 
-bool Enter(int user_code[]) {
-    int check = 0;
-    for (int i = 0; i < 4; i++) {
-        if (code[i] == user_code[i]) {
-            check++;
-            if (check == 4) {
-                code[0] = 0;
-                code[1] = 0;
-                code[2] = 0;
-                code[3] = 0;
-                return 1;
-            }
-        }
-        else {
-            return 0;
-        }
+enum Menu { Choose_type, Authenticate, Create_new_tolk, Send_tolk };
+Menu menu = Choose_type;
+
+void Access_panel_set_new_tolk (char key_press) {
+
+    switch (menu) {
+        case Choose_type:
+                                if (key_press == '1') {
+                                    set_new_tolk_type= "card";
+                                    menu = Authenticate;
+                                }
+                                else if (key_press == '2') {
+                                    set_new_tolk_type = "code";
+                                    menu = Authenticate;
+                                }
+                                break;
+      
+        case Authenticate:
+                                if (Access_panel_keypad_loop(key_press) || Access_panel_read_card()) {
+                                    menu = Create_new_tolk;
+                                    card_attempt = "";
+                                    code_attempt = "";
+                                    key_presses = 0;
+                                }
+                                break;
+      
+        case Create_new_tolk:
+                                if (Access_panel_read_card() && set_new_tolk_type == "card") {
+                                    menu = Send_tolk;
+                                }
+                                                                
+                                if (Access_panel_keypad_loop(key_press) && set_new_tolk_type == "code") {
+                                    menu = Send_tolk;
+                                }
+                                break;
+
+        case Send_tolk:
+                                if (set_new_tolk_type == "card") {
+                                    Access_panel_push_tolk(user_id_at_tolk_check, set_new_tolk_type, card_attempt);
+                                }
+                                else if (set_new_tolk_type == "code") {
+                                    Access_panel_push_tolk(user_id_at_tolk_check, set_new_tolk_type, code_attempt);
+                                }
+                                card_attempt = "";
+                                code_attempt = "";
+                                key_presses = 0;
+
+                                menu = Choose_type;
+                                break;
     }
 }
 
-/*
-Hei, har godt over koden og lagt til en debounser (for � fjerne delay()'en) og en sjekk om knappene er holdt inne, 
-m�tte flytte litt p� deler av koden for � f� det til. 
-Har ikke endret koden din noe mer en og fjrnet noen f� overfl�dige variabler og fasongen (API'en gj�r mye endringer selv), 
-h�per du ser at koden er den samme. Du m� gjerne ender tilbake det du skulle f�le er n�dvndig (utsene messig/ eventuelt annet)
 
-Lagt klart til � kunne lagre nye koder og kort med adgang til en spesial meny.
 
-Det m� gjerne legges til litt komentarer p� koden, underveis og ikke n�l med � pr�ve og ta kontakt p� discord
-om du lurer p� noe, eller lurer p� hvordan det kan v�re lurt � legge inn oppdateringen av nye koder/kort mot rasperry pi.
-(Kan anbefale og ikke g� gjennom CoT)
+bool Access_panel_keypad_loop(char key_press) {
 
-*/
+    if (key_press == '#') {
+        code_attempt = "";
+        key_presses = 0;
+    }
+    else if (key_press == '*') {
+        user_id_at_tolk_check = Access_panel_check_tolk();
+
+        if (user_id_at_tolk_check != 0) {
+
+            if (!set_new_tolk_check) {
+                Access_panel_open_Door();
+
+                Serial.println("LE GOW");
+
+                code_attempt = "";
+                key_presses = 0;
+            }
+
+            return 1;
+        }
+        else {
+            Serial.println("Nope");
+        }
+        code_attempt = "";
+        key_presses = 0;
+    }
+    else if (key_presses < 10) {
+        code_attempt += key_press;
+        key_presses++;
+    }
+
+    return 0;
+}
+
+
+
+bool Access_panel_read_card() {
+
+    if (rfid.PICC_ReadCardSerial()) {
+        MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
+
+        for (int i = 0; i < 4; i++) {
+            card_attempt += String(rfid.uid.uidByte[i], HEX);
+        }
+
+        rfid.PICC_HaltA();
+        rfid.PCD_StopCrypto1();
+
+        user_id_at_tolk_check = Access_panel_check_tolk();
+
+        if (user_id_at_tolk_check != 0) {
+
+            if (!set_new_tolk_check) {
+                Access_panel_open_Door();
+
+                Serial.println("LE GOW");
+
+                card_attempt = "";
+            }
+
+            return 1;
+        }
+        else {
+            Serial.println("Nope");
+        }
+        card_attempt = "";
+    }
+
+    return 0;
+}
+
+
+
+int Access_panel_check_tolk() {
+
+ // Convert card_attempt and code_attempt to sha256 hash
+    card_attempt = Access_panel_sha256(card_attempt);
+    code_attempt = Access_panel_sha256(code_attempt);
+
+    for (int i = 0; i < users; i++) {
+        if      (card_attempt == user_card[i])  return i + 1;
+        else if (code_attempt == user_code[i])  return i + 1;
+        else if (           i == users - 1   )  return 0;
+    }
+}
+
+
+
+String Access_panel_sha256(String tolk) {
+
+    char* key = "SD3wGw&teRy^!GYiY24Q2eqZ";
+    char* payload = const_cast<char*>(tolk.c_str());
+    byte hmacResult[32];
+
+    mbedtls_md_context_t ctx;
+    mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+
+    const size_t payloadLength = strlen(payload);
+    const size_t keyLength = strlen(key);
+
+    mbedtls_md_init(&ctx);
+    mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
+    mbedtls_md_hmac_starts(&ctx, (const unsigned char*)key, keyLength);
+    mbedtls_md_hmac_update(&ctx, (const unsigned char*)payload, payloadLength);
+    mbedtls_md_hmac_finish(&ctx, hmacResult);
+    mbedtls_md_free(&ctx);
+
+    String sha256;
+
+    for (int i = 0; i < sizeof(hmacResult); i++) {
+        char str[3];
+
+        sprintf(str, "%02x", (int)hmacResult[i]);
+        sha256 += str;
+    }
+
+    return sha256;
+}
+
+
+
+void Access_panel_open_Door() {
+
+    now_time = millis();
+    myservo.write(180);
+
+}
+
+
+
+void Access_panel_push_tolk(String user, String type_tolk, String tolk) {
+
+    access_panel_message.resiver = "Hub";
+    access_panel_message.room    = Entry;
+    access_panel_message.header  = Access_controll;
+
+    access_panel_message.data_String[0] = { "request", "push" };
+    access_panel_message.data_String[1] = { "user"   ,  user };
+    access_panel_message.data_String[2] = { "type_tolk", "type_tolk" };
+    access_panel_message.data_String[3] = { "tolk"   ,  tolk };
+
+    mqtt_access_panel->pub(access_panel_message);
+}
+
+
+
+void Access_panel_pull_tolk() {
+    access_panel_message.resiver = "Hub";
+    access_panel_message.room    = Entry;
+    access_panel_message.header  = Access_controll;
+
+    access_panel_message.data_String[0] = { "request"  , "pull" };
+    access_panel_message.data_String[1] = { "type_tolk", "card and code" };
+
+    mqtt_access_panel->pub(access_panel_message);
+}

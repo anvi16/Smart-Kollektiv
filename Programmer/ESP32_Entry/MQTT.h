@@ -10,6 +10,8 @@ Description:
 #ifndef MQTT_H
 #define MQTT_H
 
+#define ARDUINOJSON_ENABLE_STD_STREAM 0
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include "libraries/PubSubClient/src/PubSubClient.cpp"

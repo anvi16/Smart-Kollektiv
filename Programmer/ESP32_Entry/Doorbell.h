@@ -5,14 +5,14 @@
 #include "Oled_display.h"
 
 #define user_array_len 6
-#define button_up      3 
-#define button_enter   4 
-#define button_down    5
-#define door           6
+#define button_up      4 
+#define button_enter   16 
+#define button_down    17
+#define door           15
 
 
-unsigned long last_debounce_time = 0; 
-unsigned long debounce_delay     = 20;
+uint32_t last_debounce_time = 0; 
+int      debounce_delay     = 20;
 
 bool last_button_up_state    = LOW;
 bool last_button_enter_state = LOW;
@@ -38,7 +38,7 @@ void Doorbell_show();
 void Doorbell_call_user(String user);
 void Doorbell_scorll();
 void Doorbell_send(String user);
-void Doorbell_recive();
+void Doorbell_recive(bool reply);
 
 
 
@@ -118,6 +118,10 @@ void Doorbell_loop() {
         }
         button_change = false; // reset
     }
+
+    if (wait_for_responce) {
+
+    }
 }
 
 void Doorbell_show() {
@@ -171,7 +175,7 @@ void Doorbell_recive(bool reply) {
     if (reply) {
         Oled_display_text_clear("Welcome", 23, 22);
         digitalWrite(door, HIGH);
-        delay(2000);
+        //delay(2000);
     }
     else {
         size_t len = users[index_user_array].length();

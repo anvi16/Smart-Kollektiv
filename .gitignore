@@ -3,4 +3,8 @@ Debug/
 __vm/
 *.vcxproj
 CppProperties.json
-
+.spyproject/
+__pycache__/
+*.vcxproj.filters
+*.vcxproj.user
+*.pyc

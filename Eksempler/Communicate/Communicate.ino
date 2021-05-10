@@ -5,7 +5,7 @@ Created by: Group 8
 Version: v1.0	04/04/2021
 
 Description:
-        Test communication
+        Main script
 *************************************************/
 
 
@@ -23,8 +23,10 @@ const char* WIFI_PASSWORD = "Y897R123";
 const char* MQTT_CLIENT_ID = "user5";
 const char* MQTT_SERVER_IP = "broker.hivemq.com";
 const uint16_t  MQTT_SERVER_PORT = 1883;
+
 // Commen topic for system
 const char* MQTT_TOPIC = "My_home/mqtt";
+
 
 Mqtt_message mqtt_message;
 MQTT mqtt;
@@ -32,20 +34,27 @@ MQTT mqtt;
 StaticJsonDocument<MQTT_MAX_PACKET_SIZE> Json_payload;
 
 
+
 void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
-    // Concat the payload into a string
-    String payload;
-    for (word i = 0; i < p_length; i++) {
-        payload.concat((char)p_payload[i]);
-    }
-    Serial.println(payload);
-    
+
+    #ifdef DEBUG
+        // Concat the payload into a string
+        String payload;
+        for (word i = 0; i < p_length; i++) {
+            payload.concat((char)p_payload[i]);
+        }
+        Serial.println(payload);
+    #endif
+
     deserializeJson(Json_payload, p_payload, p_length);
+
     // Check if message is for user
     if (strcmp(Json_payload["id"], MQTT_CLIENT_ID) == 0 || strcmp(Json_payload["id"], "All") == 0) {
+
         if (int(Json_payload["header"]) == Doorbell) {
             Doorbell_recive(bool(Json_payload["data_int"]["reply"]));
         }
+
         if (int(Json_payload["header"]) == Access_controll) {
             String cards[users];
             String codes[users];
@@ -57,9 +66,8 @@ void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
             Access_panel_store_tolk(cards, codes);
         }
     }
-     
-    
 }
+
 
 
 void setup() {
@@ -67,8 +75,8 @@ void setup() {
     Doorbell_setup(mqtt);
     Access_log_setup(mqtt);
     Access_panel_setup(mqtt);
-
 }
+
 
 
 void loop() {

@@ -22,15 +22,10 @@ Gløshaugen_forecast = Forecast(Gløshaugen, USER_AGENT)
 # save location.
 def get(): 
     Gløshaugen_forecast.update()
-    interval = Gløshaugen_forecast.data.intervals[30]
-    print (interval)
+    interval= Gløshaugen_forecast.data.intervals[30]
+    #print (interval)
 
     uteTemp= interval.variables["air_temperature"]
+    #print (uteTemp)
     
     return uteTemp.value
-
-
-if __name__ == "__main__":    
-    
-    t = get()
-    print(t)

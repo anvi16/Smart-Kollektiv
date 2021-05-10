@@ -2,9 +2,9 @@ import time
 import json
 import enum
 import paho.mqtt.client as paho
-import User_tolk as user_tolk
-import Power_usage as power_usage
-#import Outdoor_temp as outdoor_temp
+import User_tolk
+import Power_usage
+import Outdoor_temp
 
 
 ###### Declare variables ######
@@ -46,11 +46,11 @@ class Room(enum.IntEnum):
 def Access_panel_store(user, type_tolk, tolk):
     # Write tolk to user storage
     if (type_tolk == "card"):
-        user_tolk.store_card_id(user, tolk)
+        User_tolk.store_card_id(user, tolk)
+
     if (type_tolk == "code"):
-        user_tolk.store_code(user, tolk)
-        
-        
+            User_tolk.store_code(user, tolk)
+       
     
     
     
@@ -61,13 +61,13 @@ def Access_panel_push(cards, codes):
     user_codes = []
     
     for ID in range(users):
-        user_cards.append(user_tolk.get_card_id("user"+str(ID+1)))
+        user_cards.append(User_tolk.get_card_id("user"+str(ID+1)))
     
     for ID in range(users):
-        user_codes.append(user_tolk.get_code("user"+str(ID+1)))
+        user_codes.append(User_tolk.get_code("user"+str(ID+1)))
     
     message = {
-      "id" : "user5",
+      "id" : "Access_panel",
       "room" : Room.Entry,
       "header" : Header.Acsess_controll,
       "data_String" : {
@@ -96,18 +96,19 @@ def Access_panel_push(cards, codes):
     
 
 
+
 def Outdoor_temp_send(temp):
     
     message = {
        "id" : "Rc_dorm1",
-       "room" : Room.All,
+       "room" : Room.Dormroom_1,
        "header" : Header.Room_Controller,
-       "data_int" : { "Outdoor_temp": temp }
+       "data_int" : { "Outdoor_temp": int(temp) }
     }
     
     message_json = json.dumps(message)
 
-    client.publish(topic, message_json, True)
+    client.publish(topic, message_json)
 
 
 
@@ -124,25 +125,25 @@ def on_message(client, userdata, message):
             
             if(payload["room"] <= 6 and payload["room"] > 0):
                 consumption = payload["data_String"]["todaysCons"]
-                #user        = "user"+payload["room"]
+                user        = "user"+str(payload["room"])
                 room        = payload["room"]
                 booked      = float("NaN")
                 
                 if payload["room"] == Room.Bathroom:
                     booked = payload["booked"]
                     
-                #power_usage.Handel_power_usages(consumption, user, room, booked)
+                Power_usage.Handel_power_usages(consumption, user, room, booked)
                 
             else:
                 consumption = payload["data_String"]["todaysCons"]
-                #user        = "user"+payload["room"]
+                user        = "user"+str(payload["room"])
                 room        = payload["room"]
                 booked      = float("NaN")
                 
                 if payload["room"] == Room.Bathroom:
                     booked = payload["booked"]
                     
-                #power_usage.Handel_power_usages(consumption, user, room, booked)
+                Power_usage.Handel_power_usages(consumption, user, room, booked)
             
             
             
@@ -168,13 +169,22 @@ def on_message(client, userdata, message):
             if (payload["data_String"]["request"] == "push"):
                     Access_panel_store(payload["data_String"]["user"], payload["data_String"]["type_tolk"], payload["data_String"]["tolk"])
 
-                
+               
+
+
+
+def job_every_1s():
+    Outdoor_temp_send(Outdoor_temp.get())
+
+
 
 
 ###### Setup ######
-user_tolk.setup()
-power_usage.setup()
+User_tolk.setup()
+Power_usage.setup()
 
+seconds1 = 1
+loop_time = time.time()
 
 
 ############## MQTT #################
@@ -194,15 +204,20 @@ time.sleep(2)
 # loop
 try:
     while True:
+        elapsed_time = time.time() - loop_time
+
+        if elapsed_time > seconds1:
+            job_every_1s()
+            loop_time = time.time()
+        
         client.loop()
-        Outdoor_temp_send(10)
-        time.sleep(1)
+        
 
 except KeyboardInterrupt:
     client.disconnect()
-#except Exception as e:
-#    print("error: ", e)
-#    client.disconnect()
+except Exception as e:
+    print("error: ", e)
+    client.disconnect()
         
         
 

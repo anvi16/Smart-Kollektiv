@@ -85,6 +85,11 @@ void MQTT::pub(Mqtt_message& mqtt_message, const char* MQTT_PUB_TOPIC, bool reta
  // Check if buffer is small enough
     try {
         if (n < MQTT_MAX_PACKET_SIZE) {
+         // Check connection
+            if (!client.connected()) {
+                reconnect();
+            }
+
          // Send message
             client.publish(MQTT_PUB_TOPIC, buffer, retain);
         }
@@ -173,7 +178,9 @@ void MQTT::setup(const char* WIFI_SSID, const char* WIFI_PASSWORD, const char* M
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        Serial.print(".");
+        #ifdef DEBUG
+            Serial.print(".");
+        #endif  
     }
 
     #ifdef DEBUG

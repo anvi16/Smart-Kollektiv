@@ -63,22 +63,18 @@ def Write_power_usage(consumption, ID, room, booked):
   # Read file to dataframe
     df = pd.read_csv(path + "/" + file)
     
-  # Create multiindex
-    if [col for col in df.columns if 'ID' in col]: 
-        df = df.set_index(['ID','Room','Booked'])
-    
   # Check if todays date exsist
     if not today in df.columns:
-        for column in range(24):
-            df[str(column)] = 0
-        midx_name = [[today], ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24']]
-        df.columns = pd.MultiIndex.from_product(midx_name)
+        df[today] = 0
+    
+  # Create multiindex
+    df = df.set_index(['ID','Room','Booked'])
     
   # Store consumption value
-    #df.loc[(ID, room, booked), today] = consumption
+    df.loc[(ID, room, booked), today] = consumption
     
   # Update the consumed power sum 
-    #df.loc[('Sum'), today] = df[today].sum(axis = 0, skipna = True) - df.loc[('Sum'), today]
+    df.loc[('Sum'), today] = df[today].sum(axis = 0, skipna = True) - df.loc[('Sum'), today]
     
   # Store dataframe to file
     df.to_csv(path + "/" + file)
@@ -99,31 +95,26 @@ def Read_power_usage(ID, room, booked):
   # Read file to dataframe
     df = pd.read_csv(path + "/" + file)
     
-  # Create multiindex
-    if [col for col in df.columns if 'ID' in col]: 
-        df = df.set_index(['ID','Room','Booked'])    
-
   # Check if todays date 
     if not today in df.columns:
-        for column in range(24):
-            df[str(column)] = 0
-        midx_name = [[today], ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24']]
-        df.columns = pd.MultiIndex.from_product(midx_name)
+        df[today] = 0
+    
+  # Create multiindex
+    df = df.set_index(['ID','Room','Booked'])
     
     return df.loc[(ID, room, booked), today]
 
     
 def Handel_power_usages(consumption, ID, room=float("NaN"), booked=float("NaN")):
     average_consumption = 0
-    hours = 24
-
+    hours = 0
   # If consumption is a comma seperated list, calculate the average
     if consumption.__contains__(","):
         consumption = consumption.split(",")
         for kWh in consumption:
             if (int(kWh) != 0):
                 average_consumption += int(kWh)
-
+                hours += 1
         try:
             average_consumption = average_consumption / hours
         except ZeroDivisionError:
@@ -132,12 +123,11 @@ def Handel_power_usages(consumption, ID, room=float("NaN"), booked=float("NaN"))
     else:
         average_consumption = int(consumption)
         
-    #current_value = Read_power_usage(ID, room, booked)
+    current_value = Read_power_usage(ID, room, booked)
     new_value = average_consumption
 
-    #if current_value < new_value:
-    de = Write_power_usage(new_value, ID, room, booked)
-    print(de)
+    if current_value < new_value:
+        Write_power_usage(new_value, ID, room, booked)
     
     
 if __name__ == "__main__":    
@@ -146,7 +136,7 @@ if __name__ == "__main__":
     
     list2 = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
     
-    #Handel_power_usages(list2, 'user2', 'Livingroom')
+    Handel_power_usages(list2, 'user2', 'Livingroom')
     
     
     """

@@ -36,6 +36,18 @@
     <ClInclude Include="Oled_display.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Akses_panel_edit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Access_panel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Access_panel_edit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MQTT_Class.cpp">

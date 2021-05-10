@@ -56,6 +56,7 @@ extern const uint8_t door_check; // Import door_check from Access_log.h
 // OLED Display
 #include "Oled_display.h"
 extern void Doorbell_show(); // Import Doorbell menu
+extern uint32_t screen_on_time; // Import screen_on_time from Doorbell.h
 
 
 // Encryption og MQTT
@@ -74,7 +75,7 @@ int    key_presses;
 int    max_code_len = 6;
 
 bool   set_new_tolk_check = false;
-bool   read_new_card      = false;
+bool   read_new_tolk      = false;
 int    user_id_at_tolk_check;
 String set_new_tolk_type;
 
@@ -164,7 +165,7 @@ void Access_panel_loop() {
  // Exit set_new_tolk_menu after no action for set time
     if (set_new_tolk + set_new_tolk_delay < millis() && set_new_tolk_check && set_new_tolk_check) {
         set_new_tolk_check = false;
-        read_new_card      = false;
+        read_new_tolk      = false;
         
      // Reset keypad presses
         card_attempt = "";
@@ -204,6 +205,7 @@ void Access_panel_keypad_event(char key_press) {
     
     if (set_new_tolk_check && keypad.getState() == PRESSED) {
         Access_panel_set_new_tolk(key_press);
+
     }
     else {
         switch (keypad.getState()) {
@@ -213,6 +215,9 @@ void Access_panel_keypad_event(char key_press) {
 
             case HOLD:
                             if (key_press == '0'){
+                                display.ssd1306_command(SSD1306_DISPLAYON);
+                                screen_on_time = millis();
+
                                 Oled_display_text_clear("Spesial", 25, 15, 2);
                                 Oled_display_text("menu", 40, 33, 2);
                                 display.display();
@@ -227,6 +232,7 @@ void Access_panel_keypad_event(char key_press) {
                                 set_new_tolk       = millis();
                                 set_new_tolk_check = true;
 
+                                card_attempt = "";
                                 code_attempt = "";
                                 key_presses  = 0;
                             }
@@ -238,7 +244,10 @@ void Access_panel_keypad_event(char key_press) {
 
 
 void Access_panel_set_new_tolk (char key_press) {
+ // Keep disply alive if there is action
+    screen_on_time = millis();
 
+ // New tolk menu
     switch (menu) {
         case Authenticate:
                                 if (Access_panel_keypad_loop(key_press) || Access_panel_read_card()) {
@@ -247,7 +256,7 @@ void Access_panel_set_new_tolk (char key_press) {
                                     Oled_display_text("New code:2", 6, 43, 2);
                                     display.display();
 
-                                    read_new_card = true;
+                                    read_new_tolk = true;
 
                                     menu = Choose_type;
                                 }
@@ -334,7 +343,7 @@ void Access_panel_set_new_tolk (char key_press) {
                                         Oled_display_line(15 + 14 * key_presses, 50);
                                     }
                                     else {
-                                        Oled_display_text("*", 17 + 14 * (key_presses), 40);
+                                        Oled_display_text("*", 17 + 14 * (key_presses - 1), 40);
                                     }
                                     display.display();
                                 }
@@ -369,7 +378,7 @@ void Access_panel_set_new_tolk (char key_press) {
                                 key_presses = 0;
 
                                 set_new_tolk_check = false;
-                                read_new_card      = false;
+                                read_new_tolk      = false;
 
                                 menu = Authenticate;
 
@@ -421,7 +430,7 @@ bool Access_panel_keypad_loop(char key_press) {
             }
         }
         else {
-            if (read_new_card) {
+            if (read_new_tolk) {
                 Access_panel_check_tolk();
                 return true;
             }
@@ -481,7 +490,7 @@ bool Access_panel_read_card() {
             }
         }
         else {
-            if (read_new_card) {
+            if (read_new_tolk) {
                 Access_panel_check_tolk();
                 return true;
             }

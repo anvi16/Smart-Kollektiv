@@ -10,12 +10,16 @@ from datetime import date
 import os
 
 path = "log"
-file = "Power_usage.csv"
+file = "Power_usage"
 
 
-def setup():    
-  # Set up the file, if it dosen't exsist 
-    if not os.path.exists(path + "/" + file):
+
+def setup():
+    
+ # Set up the file, if it dosen't exsist 
+    if not os.path.exists(path + "/" + file + '.csv'):
+        
+        today = date.today().strftime("%d/%m/%Y")
         
       # Set up the struct of the dataframe indexses   
       # Level 1
@@ -36,6 +40,15 @@ def setup():
     
         df = pd.concat([df1,df2, df3], axis=1)
         
+      # Create multiindex
+        df.columns=pd.MultiIndex.from_product([df.columns,['']])
+        
+      # Check if todays date exsist
+        if not today in df.columns:
+            for column in range(24):
+                df.loc[ :, (today, str(column)) ] = 0
+        
+        
       # Create path if it does not exsist
         if not os.path.exists(path):
             try:
@@ -45,89 +58,144 @@ def setup():
                 raise
       # Create the file
         try:
-            df.to_csv(path + "/" + file)
+            df.to_csv(path + "/" + file + '.csv')
+            df.to_hdf(path + "/" + file + '.h5', "df")
         except OSError as err:
             print("OS error: {0}".format(err))
             raise
      
         
      
-def Write_power_usage(consumption, ID, room, booked): 
+    
+def Write_power_usage(consumption, hour, ID, room="", booked=""):
+    
   # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file):
+    if not os.path.exists(path + "/" + file + '.csv'):
         setup()
-        
+    
   # Get current date in (dd/mm/yy) 
     today = date.today().strftime("%d/%m/%Y")
     
-  # Read file to dataframe
-    df = pd.read_csv(path + "/" + file)
+  # Read from file to dataframe
+    df = pd.read_hdf(path + "/" + file + '.h5', "df")
     
   # Check if todays date exsist
     if not today in df.columns:
-        df[today] = 0
+        for column in range(24):
+            df.loc[ :, (today, str(column)) ] = 0
+            
+  # Store consumption to dataframe
+    df[(today, hour)][(ID, room, booked)] = consumption
     
-  # Create multiindex
-    df = df.set_index(['ID','Room','Booked'])
+    # Store dataframe to file
+    df.to_csv(path + "/" + file + '.csv')
+    df.to_hdf(path + "/" + file + '.h5', "df")
     
-  # Store consumption value
-    df.loc[(ID, room, booked), today] = consumption
+    return df
     
-  # Update the consumed power sum 
-    df.loc[('Sum'), today] = df[today].sum(axis = 0, skipna = True) - df.loc[('Sum'), today]
     
-  # Store dataframe to file
-    df.to_csv(path + "/" + file)
     
+    
+def Read_power_usage(hour, ID, room="", booked=""):
+    
+  # Create the folder and file if it does not exsist
+    if not os.path.exists(path + "/" + file + '.csv'):
+        setup()
+
+  # Get current date in (dd/mm/yy)
+    today = date.today().strftime("%d/%m/%Y")
+
+  # Read file to dataframe
+    df = pd.read_hdf(path + "/" + file + '.h5', 'df')
+
+  # Check if todays date 
+    if not today in df.columns:
+        for column in range(24):
+            df.loc[ :, (today, str(column)) ] = 0
+        
+        df.to_csv(path + "/" + file + '.csv')
+        df.to_hdf(path + "/" + file + '.h5', "df")
+    
+  # Return value
+    return df.loc[(ID, room, booked), (today, hour)]
+
+
+
+
+def Handel_power_usages(consumption, hour, ID, room="", booked=""):
+    
+  # Make shure arguments is type String
+    if type(consumption) != str():
+        consumption = str(consumption)
+        
+    if type(hour) != str():
+        hour = str(hour)
+        
+    df = None
+    
+    
+  # If consumption is a comma seperated list, split and loop through
+    if consumption.__contains__(","):
+        consumption = consumption.split(",")
+
+        for i in range(len(consumption)):
+
+          # First item in consumption date in month
+            if(i == 0):
+              # Make shure consumption resived is from today
+                if date.today().day != int(consumption[0]):
+                    break
+               
+            elif (int(consumption[i]) != 0):
+                
+                current_value = Read_power_usage(str(i-1), ID, room, booked)
+                new_value = int(consumption[i])
+                
+                if current_value <= new_value:
+                    df = Write_power_usage(new_value, str(i-1), ID, room, booked)
+
+            
+  # If consumption is singel check if it`s greater and if store it
+    else:
+        new_value = int(consumption)
+    
+        current_value = Read_power_usage(hour, ID, room, booked)
+
+        if current_value <= new_value:
+            df = Write_power_usage(new_value, hour, ID, room, booked)
+        
     return df
 
 
+    
+    
+if __name__ == "__main__":    
+    
+    #Write_power_usage(50, 'user2', 'Livingroom')
+    #dg = Read_power_usage(50, 'user2', 'Livingroom')
+    #print(dg)
+    
+
+    #df = Handel_power_usages("50", "1", 'user4', 'Livingroom')
+    list2 = "10,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1"
+    
+    df = Handel_power_usages(list2, 2, 'user2', 'Livingroom')
+    #df = Handel_power_usages("50", "1", 'Sun panel')
+    #df = Handel_power_usages("50", "1", 'user3', 'Bathroom', 'Shower')
+    #df = Write_power_usage(505000, "0", 'user2', 'Bathroom', 'Shower')
+    
+    print(df)
 
 
-def Read_power_usage(ID, room, booked):
-  # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file):
-        setup()
-    
-  # Get current date in (dd/mm/yy)
-    today = date.today().strftime("%d/%m/%Y")
-    
-  # Read file to dataframe
-    df = pd.read_csv(path + "/" + file)
-    
-  # Check if todays date 
-    if not today in df.columns:
-        df[today] = 0
-    
-  # Create multiindex
-    df = df.set_index(['ID','Room','Booked'])
+
+"""
+
+        df.columns = pd.MultiIndex.from_product(midx_name)
     
     return df.loc[(ID, room, booked), today]
 
     
-def Handel_power_usages(consumption, ID, room=float("NaN"), booked=float("NaN")):
-    average_consumption = 0
-    hours = 0
-  # If consumption is a comma seperated list, calculate the average
-    if consumption.__contains__(","):
-        consumption = consumption.split(",")
-        for kWh in consumption:
-            if (int(kWh) != 0):
-                average_consumption += int(kWh)
-                hours += 1
-        try:
-            average_consumption = average_consumption / hours
-        except ZeroDivisionError:
-            average_consumption = 0
-            
-    else:
-        average_consumption = int(consumption)
-        
-    current_value = Read_power_usage(ID, room, booked)
-    new_value = average_consumption
 
-    if current_value < new_value:
-        Write_power_usage(new_value, ID, room, booked)
     
     
 if __name__ == "__main__":    
@@ -136,10 +204,10 @@ if __name__ == "__main__":
     
     list2 = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
     
-    Handel_power_usages(list2, 'user2', 'Livingroom')
+    #Handel_power_usages(list2, 'user2', 'Livingroom')
     
     
-    """
+    
     df = Write_power_usage(50, 'user5', 'Livingroom')
     print(Read_power_usage('user2', 'Livingroom'))
 

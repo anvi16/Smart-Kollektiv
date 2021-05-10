@@ -123,27 +123,47 @@ def on_message(client, userdata, message):
     ###### Handel doorbell messages ######
         if (payload["header"] == Header.Energi_consumption):
             
-            if(payload["room"] <= 6 and payload["room"] > 0):
+          # User consumption
+            if(payload["data_int"]["user"] >= 0 and payload["data_int"]["user"] < 6):
                 consumption = payload["data_String"]["todaysCons"]
-                user        = "user"+str(payload["room"])
+                user        = "user"+str(payload["data_int"]["user"]+1)
                 room        = payload["room"]
-                booked      = float("NaN")
+                booked      = ""
                 
                 if payload["room"] == Room.Bathroom:
                     booked = payload["booked"]
                     
-                Power_usage.Handel_power_usages(consumption, user, room, booked)
+                Power_usage.Handel_power_usages(consumption, "", user, room, booked)
+            
+          # Room Controller consumption
+            elif (payload["data_int"]["user"] >= 6 and payload["data_int"]["user"] < 12):
+                consumption = payload["data_String"]["todaysCons"]
+                user        = "user"+str(payload["data_int"]["user"]-5)
+                room        = "Dorm"
+                booked      = ""
+                    
+                Power_usage.Handel_power_usages(consumption, "", user, room, booked)
                 
+          # Room Controller consumption not in dorm
             else:
                 consumption = payload["data_String"]["todaysCons"]
-                user        = "user"+str(payload["room"])
-                room        = payload["room"]
-                booked      = float("NaN")
                 
-                if payload["room"] == Room.Bathroom:
-                    booked = payload["booked"]
+                if   payload["room"] == Room.Livingroom:
+                    user    = "Livingroom"
                     
-                Power_usage.Handel_power_usages(consumption, user, room, booked)
+                elif payload["room"] == Room.Bathroom:
+                    user    = "Bathroom"
+                    
+                elif payload["room"] == Room.Kitchen:
+                    user    = "Kitchen"
+                    
+                elif payload["room"] == Room.Entry:
+                    user    = "Entry"
+                    
+                room        = ""
+                booked      = ""
+                    
+                Power_usage.Handel_power_usages(consumption, "", user, room, booked)
             
             
             

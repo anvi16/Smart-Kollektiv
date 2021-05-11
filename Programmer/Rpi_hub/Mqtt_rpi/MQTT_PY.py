@@ -134,7 +134,7 @@ def Push_power_consumption():
 
 
 def on_message(client, userdata, message):
-    print("received message =", str(message.payload.decode("utf-8")))
+    #print("received message =", str(message.payload.decode("utf-8")))
     payload = json.loads(message.payload)
    
   # Handel payload to Hub
@@ -231,7 +231,7 @@ Power_usage.setup()
 seconds1 = 1
 loop_time_1sec = time.time()
 
-minutes15 = 15
+minutes15 = 900
 loop_time_15min = time.time()
 index_loop = 0
 

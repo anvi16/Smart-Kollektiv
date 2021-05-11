@@ -2,7 +2,7 @@
 """
 Created on Sun May  2 13:46:41 2021
 
-@author: Gruppe 10
+@author: Gruppe 8
 """
 
 import requests  

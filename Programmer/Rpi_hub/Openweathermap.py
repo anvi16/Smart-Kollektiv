@@ -11,28 +11,39 @@ response = requests.get(url)
 weatherdata = json.loads(response.text)
 
 
-def get():                                              #Update the weatherforecast. This will request the data from openweathermap.
+def get_temp():                                              #Update the weatherforecast. This will request the data from openweathermap.
     weatherdata.update()
-    interval= weatherdata.data.intervals[30]
-    return interval
+    uteTemp = weatherdata["main"]["temp"]
+    uteTemp_celsius = (uteTemp - 273)
+    #print (uteTemp_celsius)
+
+    return round(uteTemp_celsius)
+        
 
 
-uteTemp = weatherdata["main"]["temp"]
-uteTemp_celsius = (uteTemp - 273)
-print (uteTemp_celsius)
-
-
-sunrise = weatherdata["sys"]["sunrise"]
-sunset  = weatherdata["sys"]['sunset']
-clouds = weatherdata["clouds"]["all"]
-
-
-sun_effiency = (105 - clouds)/100
-sun_hours = (sunset - sunrise)/3600
-
-print (sun_effiency)
+def get_sun_panel_production():
+    weatherdata.update()
+    sunrise = weatherdata["sys"]["sunrise"]
+    sunset  = weatherdata["sys"]['sunset']
+    clouds = weatherdata["clouds"]["all"]
     
-power_production = 0.212*150*sun_effiency*sun_hours   ## 0.212 is the panasonic solar panel efficiency.
-                                                      ## 150 is the area that the solar panels cover. 
-print(str(power_production) + " Watt per day")
+    
+    sun_effiency = (105 - clouds)/100
+    sun_hours = (sunset - sunrise)/3600
+    
+    #print (sun_effiency)
+        
+    power_production = 0.212*150*sun_effiency*sun_hours   ## 0.212 is the panasonic solar panel efficiency.
+                                                          ## 150 is the area that the solar panels cover. 
+    return round(power_production)
+
+
+if __name__ == "__main__":
+
+    print(get_sun_panel_production())
+
+
+
+
+
 

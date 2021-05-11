@@ -4,7 +4,7 @@ import enum
 import paho.mqtt.client as paho
 import User_tolk
 import Power_usage
-import Outdoor_temp
+import Openweathermap as Weather
 import CoT
 
 
@@ -111,11 +111,18 @@ def Outdoor_temp_send(temp):
 
     client.publish(topic, message_json)
     
+
+
+
+def Sun_panel_production_store(production):
+    Power_usage.Handel_power_usages(production, "Sun panel")
+    
+    
     
     
 def Push_power_consumption():
     global index_loop
-    global loop_time_15min
+    global loop_push_power
     
     if(index_loop == 0) : CoT.push_payload(28766, int(Power_usage.User_avreage("Sun panel")))
     if(index_loop == 1) : CoT.push_payload(15415, int(Power_usage.User_avreage("user1")))
@@ -126,11 +133,10 @@ def Push_power_consumption():
     if(index_loop == 6) : CoT.push_payload(27141, int(Power_usage.User_avreage("user6")))
     if(index_loop == 7) : 
         index_loop = 0
-        loop_time_15min = time.time() 
+        loop_push_power = False
     
     else: index_loop += 1
     
-
 
 
 def on_message(client, userdata, message):
@@ -154,7 +160,7 @@ def on_message(client, userdata, message):
                 if payload["room"] == Room.Bathroom:
                     booked = payload["booked"]
                     
-                Power_usage.Handel_power_usages(consumption, "", user, room, booked)
+                Power_usage.Handel_power_usages(consumption, user, room, booked)
             
           # Room Controller consumption
             elif (payload["data_int"]["user"] >= 6 and payload["data_int"]["user"] < 12):
@@ -163,7 +169,7 @@ def on_message(client, userdata, message):
                 room        = "Dorm"
                 booked      = ""
                     
-                Power_usage.Handel_power_usages(consumption, "", user, room, booked)
+                Power_usage.Handel_power_usages(consumption, user, room, booked)
                 
           # Room Controller consumption not in dorm
             else:
@@ -184,7 +190,7 @@ def on_message(client, userdata, message):
                 room        = ""
                 booked      = ""
                     
-                Power_usage.Handel_power_usages(consumption, "", user, room, booked)
+                Power_usage.Handel_power_usages(consumption, user, room, booked)
             
             
             
@@ -215,11 +221,13 @@ def on_message(client, userdata, message):
 
 
 def job_every_1s():
-    Outdoor_temp_send(Outdoor_temp.get())
+    Outdoor_temp_send( Weather.get_temp() )
 
 
 def job_every_15min():
-    Push_power_consumption()
+    Sun_panel_production_store( Weather.get_sun_panel_production() )
+    
+    
 
 
 
@@ -231,9 +239,10 @@ Power_usage.setup()
 seconds1 = 1
 loop_time_1sec = time.time()
 
-minutes15 = 15
+minutes15 = 15 #*60
 loop_time_15min = time.time()
 index_loop = 0
+loop_push_power = False
 
 
 ############## MQTT #################
@@ -257,14 +266,22 @@ try:
         
       # Run every 1sec
         if elapsed_time > seconds1:
-            job_every_1s()
             loop_time_1sec = time.time()
+    
+            job_every_1s()
+    
             
         elapsed_time = time.time() - loop_time_15min
     
       # Run every 10min
-        if elapsed_time > minutes15 and elapsed_time > seconds1:
+        if elapsed_time > minutes15:
+            loop_time_15min = time.time() 
+            
             job_every_15min()
+            loop_push_power = True
+            
+        if loop_push_power:
+            Push_power_consumption()
         
         client.loop()
         

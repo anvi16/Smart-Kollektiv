@@ -154,15 +154,13 @@ def User_avreage(user):
 
 
 
-def Handel_power_usages(consumption, hour, ID, room="", booked=""):
+def Handel_power_usages(consumption, ID, room="", booked=""):
     
   # Make shure arguments is type String
     if type(consumption) != str():
         consumption = str(consumption)
         
-    if type(hour) != str():
-        hour = str(hour)
-        
+    hour = str(datetime.now().hour)    
     df = None
     
     

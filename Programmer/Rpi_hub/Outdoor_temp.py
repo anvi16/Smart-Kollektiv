@@ -23,7 +23,7 @@ Gløshaugen_forecast = Forecast(Gløshaugen, USER_AGENT)
 def get(): 
     Gløshaugen_forecast.update()
     interval = Gløshaugen_forecast.data.intervals[30]
-    print (interval)
+    #print (interval)
 
     uteTemp= interval.variables["air_temperature"]
     

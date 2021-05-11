@@ -6,7 +6,7 @@ Created on Sun May  2 01:26:41 2021
 """
 
 import pandas as pd 
-from datetime import date
+from datetime import date, datetime
 import os
 
 path = "log"
@@ -23,7 +23,7 @@ def setup():
         
       # Set up the struct of the dataframe indexses   
       # Level 1
-        index_names1 = [['Sum', 'Sun panel'], [''], ['']]
+        index_names1 = [['Sum', 'Sun panel', 'Livingroom', 'Bathroom', 'Kitchen', 'Entry'], [''], ['']]
         index1=pd.MultiIndex.from_product(index_names1, names = ('ID','Room','Booked'))
         
       # Level 2
@@ -87,7 +87,13 @@ def Write_power_usage(consumption, hour, ID, room="", booked=""):
   # Store consumption to dataframe
     df[(today, hour)][(ID, room, booked)] = consumption
     
-    # Store dataframe to file
+  # Update sum  
+    droped_df = df.drop(['Sum', 'Sun panel'])
+    sum_hour  = droped_df.loc[:, (today, '9')].sum()
+    
+    df[date.today().strftime("%d/%m/%Y"), '9']['Sum'] = sum_hour
+    
+  # Store dataframe to file
     df.to_csv(path + "/" + file + '.csv')
     df.to_hdf(path + "/" + file + '.h5', "df")
     
@@ -118,6 +124,32 @@ def Read_power_usage(hour, ID, room="", booked=""):
     
   # Return value
     return df.loc[(ID, room, booked), (today, hour)]
+
+
+
+
+def User_avreage(user):
+  # Create the folder and file if it does not exsist
+    if not os.path.exists(path + "/" + file + '.csv'):
+        setup()
+
+  # Get current date in (dd/mm/yy)
+    today = date.today().strftime("%d/%m/%Y")
+
+  # Read file to dataframe
+    df = pd.read_hdf(path + "/" + file + '.h5', 'df')
+
+  # Check if todays date 
+    if not today in df.columns:
+        for column in range(24):
+            df.loc[ :, (today, str(column)) ] = 0
+        
+        df.to_csv(path + "/" + file + '.csv')
+        df.to_hdf(path + "/" + file + '.h5', "df")
+    
+  # Return value
+    return df.loc[user, (today, str(datetime.now().hour))].sum()
+
 
 
 
@@ -167,49 +199,26 @@ def Handel_power_usages(consumption, hour, ID, room="", booked=""):
     return df
 
 
+
+
+
+
     
     
 if __name__ == "__main__":    
     
-    #Write_power_usage(50, 'user2', 'Livingroom')
+    #Write_power_usage(50, '9', 'user5', 'Livingroom')
     #dg = Read_power_usage(50, 'user2', 'Livingroom')
     #print(dg)
     
 
-    #df = Handel_power_usages("50", "1", 'user4', 'Livingroom')
-    list2 = "10,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1"
+    #df = Handel_power_usages("4", "9", 'Sun panel')
+    #list2 = "10,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1"
     
-    df = Handel_power_usages(list2, 2, 'user2', 'Livingroom')
+    #df = Handel_power_usages(list2, 2, 'user2', 'Livingroom')
     #df = Handel_power_usages("50", "1", 'Sun panel')
     #df = Handel_power_usages("50", "1", 'user3', 'Bathroom', 'Shower')
     #df = Write_power_usage(505000, "0", 'user2', 'Bathroom', 'Shower')
     
-    print(df)
+    print()
 
-
-
-"""
-
-        df.columns = pd.MultiIndex.from_product(midx_name)
-    
-    return df.loc[(ID, room, booked), today]
-
-    
-
-    
-    
-if __name__ == "__main__":    
-    
-    Handel_power_usages("50", 'user4', 'Livingroom')
-    
-    list2 = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
-    
-    #Handel_power_usages(list2, 'user2', 'Livingroom')
-    
-    
-    
-    df = Write_power_usage(50, 'user5', 'Livingroom')
-    print(Read_power_usage('user2', 'Livingroom'))
-
-    print(df)
-"""

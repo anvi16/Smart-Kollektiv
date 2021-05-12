@@ -713,7 +713,7 @@ void loop() {
                   mqtt_message.resiver = "Hub";
                   mqtt_message.header = Energi_consumption;
                   mqtt_message.room = id;
-                  mqtt_message.data_int[0] = {"user", id +6}
+                  mqtt_message.data_int[0] = {"user", id +5}
                   mqtt_message.data_String[0] = { "todaysCons", buffer_today};
                   mqtt_message.data_String[1] = { "yesterdaysCons", buffer_yesterday};
                   

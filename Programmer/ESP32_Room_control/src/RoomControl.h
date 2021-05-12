@@ -73,6 +73,7 @@ class RoomControl{
 
         // TIME
         int prev_day;
+        int prev_hour;
 
 
         //CONSUMPTION

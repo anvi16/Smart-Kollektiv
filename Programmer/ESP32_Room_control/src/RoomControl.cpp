@@ -258,14 +258,6 @@ void RoomControl::update(){
         fan_power_auto                  = 0;
     }
 
-    // CONSUMPTION
-    // Check for new date and reset consumption if new date
-    if (day() != prev_day){
-        for (int i = 0; i<26; i++){
-            yesterday_cons_table[i] = today_cons_table[i];      // Move current days consumption to yesterdays consumption
-        }              
-        resetConsumption();                                     // Reset todays consumption
-    }
 
     // Decide if update values from CoT
     
@@ -311,28 +303,63 @@ void RoomControl::update(){
 
 
     if (heating_state && !heating_state_prev){                  // Pos edge
-        heating_pos_edge_ts = millis();}
+        heating_pos_edge_ts = millis();
+    }
+
     else if (!heating_state && heating_state_prev){             // Neg edge
         heating_neg_edge_ts = millis();
+
         heating_on_period = (heating_neg_edge_ts - heating_pos_edge_ts) / 1000;
         heating_on_period_consumption = (heating_on_period * heaterWattage) / 3600.0; // Calculate Wms and then Wh
         
         today_cons_table[0] = room_number;
         today_cons_table[1] = day();                            // Define current day in consumption list
         today_cons_table[hour()+2] += heating_on_period_consumption;
+        
+    }
+
+    else if ((prev_hour != hour()) && heating_state){           // Update consumption at the end of every hour
+        
+        if(day() != prev_day){
+            heating_neg_edge_ts = millis();
+
+            heating_on_period = (heating_neg_edge_ts - heating_pos_edge_ts) / 1000;
+            heating_on_period_consumption = (heating_on_period * heaterWattage) / 3600.0; // Calculate Wms and then Wh
+        
+            today_cons_table[0] = room_number;
+            today_cons_table[1] = prev_day;                            // Define current day in consumption list
+            today_cons_table[prev_hour+2] += heating_on_period_consumption;
+        }
+
+        else{
+
+            heating_neg_edge_ts = millis();
+
+            heating_on_period = (heating_neg_edge_ts - heating_pos_edge_ts) / 1000;
+            heating_on_period_consumption = (heating_on_period * heaterWattage) / 3600.0; // Calculate Wms and then Wh
+        
+            today_cons_table[0] = room_number;
+            today_cons_table[1] = day();                            // Define current day in consumption list
+            today_cons_table[prev_hour+2] += heating_on_period_consumption;
+        }
+
+        heating_pos_edge_ts = millis();
+    }
+
+    // CONSUMPTION
+    // Check for new date and reset consumption if new date
+    if (day() != prev_day){
+        for (int i = 0; i<26; i++){
+            yesterday_cons_table[i] = today_cons_table[i];      // Move current days consumption to yesterdays consumption
+        }              
+        resetConsumption();                                     // Reset todays consumption
     }
 
 
     // Reset comparison for next scan
     prev_day = day();
+    prev_hour = hour();
     heating_state_prev = heating_state;
-
-    Serial.println("");
-    Serial.println("");
-    Serial.print(" Consumption current hour: ");
-    Serial.println(today_cons_table[hour()+2]);
-    Serial.println("");
-    Serial.println("");
 }
 
 // Reads out weekday in format (Mon=0, Tue=1, Wed=2, etc...)

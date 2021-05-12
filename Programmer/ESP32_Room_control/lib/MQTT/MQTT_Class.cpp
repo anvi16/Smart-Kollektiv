@@ -16,6 +16,11 @@ MQTT::MQTT() {
 }
 
 
+WiFiClient& MQTT::get_wifi_inst() {
+    return wifiClient;
+}
+
+
 void MQTT::sub(const char* MQTT_SUB_TOPIC) {   // Subscribe to desirable topics
     client.subscribe(MQTT_SUB_TOPIC);
 }
@@ -130,7 +135,7 @@ void MQTT::reconnect() {
             strcpy(buffer, MQTT_CLIENT_ID);
             strcat(buffer, text);
 
-            // client.publish(MQTT_TOPIC, buffer);
+            //client.publish(MQTT_TOPIC, buffer);
             // ... and resubscribe
             client.subscribe(MQTT_TOPIC);
 

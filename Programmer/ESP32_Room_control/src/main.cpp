@@ -6,7 +6,7 @@ Version: v1.0	14/04/2021
 Description: 
   Room controller
 
-Resp: 
+Resp & dev: 
   Jorgen Andreas Mo
 
 *************************************************/
@@ -34,6 +34,7 @@ bool          millis_rollover       = LOW;
 const long    utcOffsetInSeconds    = 2 * 3600;
 char          daysOfTheWeek[7][12]  = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 int           time_ss_prev          = 0;
+unsigned long last_case_ts          = 0;   
 
 // WiFi: SSID, Password
 const char* WIFI_SSID               = "jorgen";           // Jorgen
@@ -69,6 +70,21 @@ std::vector<std::string> id_room_list   { "Dormroom 1",   // Rooms in house to b
                                           "Entry"
 };
 
+std::vector<const char*> MQTT_id {  "Rc_dorm1",
+                                    "Rc_dorm2",
+                                    "Rc_dorm3",
+                                    "Rc_dorm4",
+                                    "Rc_dorm5",
+                                    "Rc_dorm6",
+                                    "Rc_livingroom",
+                                    "Rc_kitchen",
+                                    "Rc_bathroom",
+                                    "Rc_entry",
+                                    "Hub"
+};
+
+
+
 // NAVIGATION
 int current_lvl_val                 = 0;                  // Value for "display_menu" function, so it knows which element is active
 int menu_lvl                        = 0;  
@@ -82,7 +98,7 @@ bool        cot_operational         = LOW;                // Bool saying if the 
 
 // MQTT: ID, server IP, port, topics
 const char* MQTT_CLIENT_ID          = "RC";
-const char* MQTT_SERVER_IP          = "blueberrypie.is-very-sweet.org";  //"broker.hivemq.com";
+const char* MQTT_SERVER_IP          = "188.113.82.107";  //"broker.hivemq.com";
 const uint16_t  MQTT_SERVER_PORT    = 1883;
 
 // MQTT: Common topic for system
@@ -149,6 +165,50 @@ void setup() {
   // SERVO: Setup
   servo.attach(pin_servo, 500, 2400);
   
+  // ID: Prepare menu system for handling room setup
+  if (id_room == 0){
+
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+    display_setup_messages( "Configuration:",
+                            "Please select", 
+                            "Room");
+    delay(READTIME);
+    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
+  }
+  
+  // ID: Select room ID
+  while (id_room == 0){
+    
+    // Update current button statuses
+    up.setState(digitalRead(pin_up));
+    down.setState(digitalRead(pin_dwn));
+    left.setState(digitalRead(pin_lft));
+    right.setState(digitalRead(pin_rgt));
+    
+    if (right.posEdge()){                                 // Increase menu level
+      menu_lvl ++;
+      tft_main.fillScreen(TFT_BLACK);
+    }
+    
+    // Navigation                                                                
+    display_menu(current_lvl_val, id_room_list);
+
+    if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, up.posEdge(), down.posEdge(), current_lvl_val);}
+    else if (menu_lvl == 2)  {id_room                          = (current_lvl_val);
+                              tft_main.fillScreen(TFT_BLACK);
+                              display_setup_messages("Room","selected:", id_room_list[current_lvl_val - 1].c_str());
+                              delay(READTIME);
+                              current_lvl_val                 = 1;
+                              menu_lvl                        = 0;
+    }                                                                     
+
+  
+    if (current_lvl_val == id_room_list.size())   {bottom_reached = HIGH;}
+    else                                          {bottom_reached = LOW;}
+  }
+
+  MQTT_CLIENT_ID = MQTT_id[id_room-1];
+
   // WiFi: Initial connection attempt
   tft_main.fillScreen(TFT_BLACK);                         // Feedback to user: Connecting WiFi
   display_setup_messages( "Connecting to",
@@ -268,48 +328,7 @@ void setup() {
   }
 
 
-  // ID: Prepare menu system for handling room setup
-  if (id_room == 0){
-
-    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
-    display_setup_messages( "Configuration:",
-                            "Please select", 
-                            "Room");
-    delay(READTIME);
-    tft_main.fillScreen(TFT_BLACK);                       // Clear screen
-  }
   
-  // ID: Select room ID
-  while (id_room == 0){
-    
-    // Update current button statuses
-    up.setState(digitalRead(pin_up));
-    down.setState(digitalRead(pin_dwn));
-    left.setState(digitalRead(pin_lft));
-    right.setState(digitalRead(pin_rgt));
-    
-    if (right.posEdge()){                                 // Increase menu level
-      menu_lvl ++;
-      tft_main.fillScreen(TFT_BLACK);
-    }
-    
-    // Navigation                                                                
-    display_menu(current_lvl_val, id_room_list);
-
-    if      (menu_lvl == 1)  {current_lvl_val                 = mod_val(bottom_reached, LOW, up.posEdge(), down.posEdge(), current_lvl_val);}
-    else if (menu_lvl == 2)  {id_room                          = (current_lvl_val);
-                              tft_main.fillScreen(TFT_BLACK);
-                              display_setup_messages("Room","selected:", id_room_list[current_lvl_val - 1].c_str());
-                              delay(READTIME);
-                              current_lvl_val                 = 1;
-                              menu_lvl                        = 0;
-    }                                                                     
-
-  
-    if (current_lvl_val == id_room_list.size())   {bottom_reached = HIGH;}
-    else                                          {bottom_reached = LOW;}
-  }
-
   // ROOM CONTROL: Set initial values
   roomControl.setRoomId(id_room);                         // Set room ID
   roomControl.setTempHysteresis(1);                       // Set temperature hysteresis (+/- 1C)
@@ -472,6 +491,7 @@ void loop() {
     buttonpress_ts                  = 0;                  // --,,--
     temperature_read_ts             = 0;                  // --,,--
     wiFi_last_connection_attempt_ts = 0;                  // --,,--
+    last_case_ts                    = 0;
   }
   else {
     millis_rollover = LOW;
@@ -493,7 +513,7 @@ void loop() {
     temperature_read_raw            = temperature_read_raw * OUTPUT_MILLIVOLT / 1024; //10 bit resoultion
 
     // Convert to C
-    temperature_read_c              = (temperature_read_raw - 500) / 10 +6; //https://learn.adafruit.com/tmp36-temperature-sensor
+    temperature_read_c              = (temperature_read_raw - 500) / 10; //https://learn.adafruit.com/tmp36-temperature-sensor
 
     // Timestamp for when temp was read last
     temperature_read_ts             = millis();
@@ -637,90 +657,98 @@ void loop() {
       // Since the CoT communication is incredibly slow, we will only execute one CoT operation per cycle to avoid stalling the rest of the program longer than necessarry
       
       // Reset counter if end if line is reached
-      if (screensaver_exe_number > 18){
+      if (screensaver_exe_number > 19){
         screensaver_exe_number = 0;                       // Reset counter
       }
 
-      switch (screensaver_exe_number) {                   // Select which background operation to execute
-        
-        // TIME: update system time
-        case 0:  timeClient.update();
-                  setTime(timeClient.getHours(),          // Set new system time
-                          timeClient.getMinutes(), 
-                          timeClient.getSeconds(), 
-                          timeClient.getFormattedDate().substring(8,10).toInt(),    // DAY
-                          timeClient.getFormattedDate().substring(5,7).toInt(),     // MONTH
-                          timeClient.getFormattedDate().substring(0,4).toInt());    // YEAR
-                  break;
-        
-        // CoT: read all values
-        case 1:   cot_light_toggle    = CoT.read(KEY_LIGHT_TOGGLE,  TOKEN); break;            // Read   Light state
-        case 2:   CoT.write(KEY_LIGHT_TOGGLE,   roomlight_state,    TOKEN); break;            // Write  Light state
-        
-        case 3:   cot_light_dimming   = CoT.read(KEY_LIGHT_DIMMING, TOKEN); break;            // Read   Dimming
-        case 4:   CoT.write(KEY_LIGHT_DIMMING,  roomlight_intensity_percentage, TOKEN); break;// Write  Dimming
-        
-        case 5:   cot_temp_home       = CoT.read(KEY_TEMP_HOME,     TOKEN); break;            // Read   Home temp set
-        case 6:   CoT.write(KEY_TEMP_HOME,      temperatures[0],    TOKEN); break;            // Write  Home temp set
+                               // Incrememt item number each cycle
+      if (millis() > last_case_ts + 2*SECOND){
 
-        case 7:   cot_temp_away       = CoT.read(KEY_TEMP_AWAY,     TOKEN); break;            // Read   Away temp set
-        case 8:   CoT.write(KEY_TEMP_AWAY,      temperatures[1],    TOKEN); break;            // Write  Away temp set
+        switch (screensaver_exe_number) {                   // Select which background operation to execute
+          
+          // TIME: update system time
+          case 0:  timeClient.update();
+                    setTime(timeClient.getHours(),          // Set new system time
+                            timeClient.getMinutes(), 
+                            timeClient.getSeconds(), 
+                            timeClient.getFormattedDate().substring(8,10).toInt(),    // DAY
+                            timeClient.getFormattedDate().substring(5,7).toInt(),     // MONTH
+                            timeClient.getFormattedDate().substring(0,4).toInt());    // YEAR
+                    break;
 
-        case 9:   cot_temp_night      = CoT.read(KEY_TEMP_NIGHT,    TOKEN); break;            // Read   Night temp set
-        case 10:  CoT.write(KEY_TEMP_NIGHT,     temperatures[2],    TOKEN); break;            // Write  Night temp set
 
-        case 11:  cot_temp_long_abs   = CoT.read(KEY_TEMP_LONG_ABS, TOKEN); break;            // Read   Long absence temp set
-        case 12:  CoT.write(KEY_TEMP_LONG_ABS,  temperatures[3],    TOKEN); break;            // Write  Long absence temp set
+          // CoT: read all values
+          case 1:   cot_light_toggle    = CoT.read(KEY_LIGHT_TOGGLE,  TOKEN); break;            // Read   Light state
+          case 2:   CoT.write(KEY_LIGHT_TOGGLE,   roomlight_state,    TOKEN); break;            // Write  Light state
+          
+          case 3:   cot_light_dimming   = CoT.read(KEY_LIGHT_DIMMING, TOKEN); break;            // Read   Dimming
+          case 4:   CoT.write(KEY_LIGHT_DIMMING,  roomlight_intensity_percentage, TOKEN); break;// Write  Dimming
+          
+          case 5:   cot_temp_home       = CoT.read(KEY_TEMP_HOME,     TOKEN); break;            // Read   Home temp set
+          case 6:   CoT.write(KEY_TEMP_HOME,      temperatures[0],    TOKEN); break;            // Write  Home temp set
 
-        case 13:  cot_fan_power       = CoT.read(KEY_FAN_POWER,     TOKEN); break;            // Read   Fan power
-        case 14:  CoT.write(KEY_FAN_POWER,      fan_power_percent,  TOKEN); break;            // Write  Fan power
+          case 7:   cot_temp_away       = CoT.read(KEY_TEMP_AWAY,     TOKEN); break;            // Read   Away temp set
+          case 8:   CoT.write(KEY_TEMP_AWAY,      temperatures[1],    TOKEN); break;            // Write  Away temp set
 
-        case 15:  cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN); break;            // Read   Window opening
-        case 16:  CoT.write(KEY_AIRING_OPENING, airing_opening,     TOKEN); break;            // Write  Window opening
-        
-        case 17:  CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN); break;            // Write  Indoor temperature
+          case 9:   cot_temp_night      = CoT.read(KEY_TEMP_NIGHT,    TOKEN); break;            // Read   Night temp set
+          case 10:  CoT.write(KEY_TEMP_NIGHT,     temperatures[2],    TOKEN); break;            // Write  Night temp set
 
-        case 18:  Room id = static_cast<Room>(id_room);                                       // Write consumption data to RPi
+          case 11:  cot_temp_long_abs   = CoT.read(KEY_TEMP_LONG_ABS, TOKEN); break;            // Read   Long absence temp set
+          case 12:  CoT.write(KEY_TEMP_LONG_ABS,  temperatures[3],    TOKEN); break;            // Write  Long absence temp set
 
-                  // Read todays consumption
-                  for (int i = 0; i < 26; i++){
-                    consumption_package_MQTT[i] = roomControl.returnTodaysConsumption()[i]; 
-                  };
+          case 13:  cot_fan_power       = CoT.read(KEY_FAN_POWER,     TOKEN); break;            // Read   Fan power
+          case 14:  CoT.write(KEY_FAN_POWER,      fan_power_percent,  TOKEN); break;            // Write  Fan power
 
-                  String buffer_today;
+          case 15:  cot_airing_opening  = CoT.read(KEY_AIRING_OPENING,TOKEN); break;            // Read   Window opening
+          case 16:  CoT.write(KEY_AIRING_OPENING, airing_opening,     TOKEN); break;            // Write  Window opening
+          
+          case 17:  CoT.write(KEY_TEMP_MEASURED,  temperature_read_c, TOKEN); break;            // Write  Indoor temperature
+          
+          case 18:  {Room id = static_cast<Room>(id_room);                                       // Write consumption data to RPi
 
-                  // Fill buffer with consumption data in string format
-                  for (int i = 1; i < 26; i++){
-                    buffer_today += String(consumption_package_MQTT[i]);
-                    if (i < 25){
-                      buffer_today += ",";}
-                  }
+                    // Read todays consumption
+                    for (int i = 0; i < 26; i++){
+                      consumption_package_MQTT[i] = roomControl.returnTodaysConsumption()[i]; 
+                    }
 
-                  // Read yesterdays consumption
-                  for (int i = 0; i < 26; i++){
-                    consumption_package_MQTT[i] = roomControl.returnYesterdaysConsumption()[i]; 
-                  };
+                    String buffer_today;
 
-                  String buffer_yesterday;
+                    // Fill buffer with consumption data in string format
+                    for (int i = 1; i < 26; i++){
+                      buffer_today += String(consumption_package_MQTT[i]);
+                      if (i < 25){
+                        buffer_today += ",";}
+                    }
 
-                  // Fill buffer with consumption data in string format
-                  for (int i = 1; i < 26; i++){
-                    buffer_yesterday += String(consumption_package_MQTT[i]);
-                    if (i < 25){
-                      buffer_yesterday += ",";}
-                  }
-                  // Create JSON to send via MQTT to RPi
-                  mqtt_message.resiver = "Hub";
-                  mqtt_message.header = Energi_consumption;
-                  mqtt_message.room = id;
-                  mqtt_message.data_int[0] = {"user", id +5}
-                  mqtt_message.data_String[0] = { "todaysCons", buffer_today};
-                  mqtt_message.data_String[1] = { "yesterdaysCons", buffer_yesterday};
-                  
-                  // Send data
-                  mqtt.pub(mqtt_message);
-      }
-      screensaver_exe_number ++;                          // Incrememt item number each cycle
+                    // Read yesterdays consumption
+                    for (int i = 0; i < 26; i++){
+                      consumption_package_MQTT[i] = roomControl.returnYesterdaysConsumption()[i]; 
+                    }
+
+                    String buffer_yesterday;
+
+                    // Fill buffer with consumption data in string format
+                    for (int i = 1; i < 26; i++){
+                      buffer_yesterday += String(consumption_package_MQTT[i]);
+                      if (i < 25){
+                        buffer_yesterday += ",";}
+                    }
+                    // Create JSON to send via MQTT to RPi
+                    mqtt_message.resiver = "Hub";
+                    mqtt_message.header = Energi_consumption;
+                    mqtt_message.room = id;
+                    mqtt_message.data_int[0] = {"user", id +5};
+                    mqtt_message.data_String[0] = { "todaysCons", buffer_today};
+                    mqtt_message.data_String[1] = { "yesterdaysCons", buffer_yesterday};
+                    
+                    // Send data
+                    mqtt.pub(mqtt_message); 
+                    break;}
+                    
+          case 19: last_case_ts = millis(); break;
+        }
+        screensaver_exe_number ++;                          // Incrememt item number each cycle
+      }  
     }
   }
 
@@ -1037,6 +1065,9 @@ void loop() {
     detachInterrupt(pin_lft);
     detachInterrupt(pin_rgt);
   }
+
+  Serial.print("Outdoor temperature:   ");
+  Serial.println(temp_outdoor);
 }
 
 void IRAM_ATTR ISR(){                                     // ISR function for "waking" from screensaver mode.
@@ -1046,7 +1077,7 @@ void IRAM_ATTR ISR(){                                     // ISR function for "w
 void Mqtt_callback(char* p_topic, byte* p_payload, unsigned int p_length) {
     // Concat the payload into a string
     String payload;
-    for (uint8_t i = 0; i < p_length; i++) {
+    for (int i = 0; i < p_length; i++) {
         payload.concat((char)p_payload[i]);
     }
     Serial.println(payload);

@@ -81,8 +81,8 @@ bool  buttonstate_up, buttonstate_dwn, buttonstate_lft, buttonstate_rgt;   // De
 bool        cot_operational         = LOW;                // Bool saying if the CoT connection has been established after WiFi loss
 
 // MQTT: ID, server IP, port, topics
-const char* MQTT_CLIENT_ID          = "RC_1";
-const char* MQTT_SERVER_IP          = "broker.hivemq.com";
+const char* MQTT_CLIENT_ID          = "RC";
+const char* MQTT_SERVER_IP          = "blueberrypie.is-very-sweet.org";  //"broker.hivemq.com";
 const uint16_t  MQTT_SERVER_PORT    = 1883;
 
 // MQTT: Common topic for system
@@ -713,6 +713,7 @@ void loop() {
                   mqtt_message.resiver = "Hub";
                   mqtt_message.header = Energi_consumption;
                   mqtt_message.room = id;
+                  mqtt_message.data_int[0] = {"user", id +6}
                   mqtt_message.data_String[0] = { "todaysCons", buffer_today};
                   mqtt_message.data_String[1] = { "yesterdaysCons", buffer_yesterday};
                   

@@ -21,7 +21,7 @@ const char* WIFI_PASSWORD = "Y897R123";
 
 // MQTT: ID, server IP, port, topics
 const char* MQTT_CLIENT_ID = "Access_panel";
-const char* MQTT_SERVER_IP = "broker.hivemq.com";
+const char* MQTT_SERVER_IP = "blueberrypie.is-very-sweet.org";  //"broker.hivemq.com";
 const uint16_t  MQTT_SERVER_PORT = 1883;
 
 // Commen topic for system

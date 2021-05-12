@@ -24,7 +24,7 @@ Description:
 #define SPI_MOSI  23
 #define SPI_MISO  19
 #define SPI_CLK   18
-#define SPI_RESET 4
+#define SPI_RESET 2
 
  // OLED Display
 	#define OLED_SPICLOCK 8000000UL
@@ -61,7 +61,7 @@ Description:
 
 
 // Doorbell
-#define BUTTON_UP         2 
+#define BUTTON_UP         4 
 #define BUTTON_ENTER      16 
 #define BUTTON_DOWN       17
 

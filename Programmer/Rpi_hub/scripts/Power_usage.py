@@ -10,14 +10,17 @@ from datetime import date, datetime
 import os
 
 path = "log"
-file = "Power_usage"
+file_name = "Power_usage"
+
+file_csv = path + "/" + file_name + "_" + str(datetime.today().year) + ".csv"
+file_h5 = path + "/" + file_name + "_" + str(datetime.today().year) + ".h5"
 
 
 
 def setup():
     
  # Set up the file, if it dosen't exsist 
-    if not os.path.exists(path + "/" + file + '.csv') or not os.path.exists(path + "/" + file + '.h5'):
+    if not os.path.exists(file_csv) or not os.path.exists(file_h5):
         
         today = date.today().strftime("%d/%m/%Y")
         
@@ -41,12 +44,12 @@ def setup():
         df = pd.concat([df1,df2, df3], axis=1)
         
       # Create multiindex
-        df.columns=pd.MultiIndex.from_product([df.columns,['']])
+        df.columns=pd.MultiIndex.from_product([df.columns, ['']])
         
       # Check if todays date exsist
         if not today in df.columns:
             for column in range(24):
-                df.loc[ :, (today, str(column)) ] = 0
+                df.loc[:, (today, str(column))] = 0
         
         
       # Create path if it does not exsist
@@ -56,16 +59,17 @@ def setup():
             except OSError as err:
                 print("OS error: {0}".format(err))
                 raise
+
       # Create the file
         try:
-            df.to_csv(path + "/" + file + '.csv')
+            df.to_csv(file_csv)
         except OSError as err:
             print("OS error: {0}".format(err))
             raise
 
       # Create the file
         try:
-            df.to_hdf(path + "/" + file + '.h5', "df")
+            df.to_hdf(file_h5, "df")
         except OSError as err:
             print("OS error: {0}".format(err))
             raise
@@ -75,20 +79,20 @@ def setup():
     
 def Write_power_usage(consumption, hour, ID, room="", booked=""):
     
-  # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file + '.csv') or not os.path.exists(path + "/" + file + '.h5'):
+  # Create the folder and files if it does not exsist
+    if not os.path.exists(file_csv) or not os.path.exists(file_h5):
         setup()
     
   # Get current date in (dd/mm/yy) 
     today = date.today().strftime("%d/%m/%Y")
     
   # Read from file to dataframe
-    df = pd.read_hdf(path + "/" + file + '.h5', "df")
+    df = pd.read_hdf(file_h5, "df")
     
   # Check if todays date exsist
     if not today in df.columns:
         for column in range(24):
-            df.loc[ :, (today, str(column)) ] = 0
+            df.loc[:, (today, str(column))] = 0
             
   # Store consumption to dataframe
     df[(today, hour)][(ID, room, booked)] = consumption
@@ -100,8 +104,8 @@ def Write_power_usage(consumption, hour, ID, room="", booked=""):
     df[date.today().strftime("%d/%m/%Y"), '9']['Sum'] = sum_hour
     
   # Store dataframe to file
-    df.to_csv(path + "/" + file + '.csv')
-    df.to_hdf(path + "/" + file + '.h5', "df")
+    df.to_csv(file_csv)
+    df.to_hdf(file_h5, "df")
     
     return df
     
@@ -110,23 +114,23 @@ def Write_power_usage(consumption, hour, ID, room="", booked=""):
     
 def Read_power_usage(hour, ID, room="", booked=""):
     
-  # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file + '.csv') or not os.path.exists(path + "/" + file + '.h5'):
+  # Create the folder and files if it does not exsist
+    if os.path.exists(file_csv) or not os.path.exists(file_h5):
         setup()
 
   # Get current date in (dd/mm/yy)
     today = date.today().strftime("%d/%m/%Y")
 
   # Read file to dataframe
-    df = pd.read_hdf(path + "/" + file + '.h5', 'df')
+    df = pd.read_hdf(file_h5, 'df')
 
   # Check if todays date 
     if not today in df.columns:
         for column in range(24):
-            df.loc[ :, (today, str(column)) ] = 0
+            df.loc[:, (today, str(column))] = 0
         
-        df.to_csv(path + "/" + file + '.csv')
-        df.to_hdf(path + "/" + file + '.h5', "df")
+        df.to_csv(file_csv)
+        df.to_hdf(file_h5, "df")
     
   # Return value
     return df.loc[(ID, room, booked), (today, hour)]
@@ -135,23 +139,23 @@ def Read_power_usage(hour, ID, room="", booked=""):
 
 
 def User_avreage(user):
-  # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file + '.csv'):
+  # Create the folder and files if it does not exsist
+    if not os.path.exists(file_csv) or not os.path.exists(file_h5):
         setup()
 
   # Get current date in (dd/mm/yy)
     today = date.today().strftime("%d/%m/%Y")
 
   # Read file to dataframe
-    df = pd.read_hdf(path + "/" + file + '.h5', 'df')
+    df = pd.read_hdf(file_h5, 'df')
 
   # Check if todays date 
     if not today in df.columns:
         for column in range(24):
             df.loc[ :, (today, str(column)) ] = 0
         
-        df.to_csv(path + "/" + file + '.csv')
-        df.to_hdf(path + "/" + file + '.h5', "df")
+        df.to_csv(file_csv)
+        df.to_hdf(file_h5, "df")
     
   # Return value
     return df.loc[user, (today, str(datetime.now().hour))].sum()
@@ -210,19 +214,10 @@ def Handel_power_usages(consumption, ID, room="", booked=""):
     
     
 if __name__ == "__main__":    
-    
-    #Write_power_usage(50, '9', 'user5', 'Livingroom')
-    #dg = Read_power_usage(50, 'user2', 'Livingroom')
-    #print(dg)
-    
 
-    #df = Handel_power_usages("4", "9", 'Sun panel')
-    #list2 = "10,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1"
-    
-    #df = Handel_power_usages(list2, 2, 'user2', 'Livingroom')
-    #df = Handel_power_usages("50", "1", 'Sun panel')
-    #df = Handel_power_usages("50", "1", 'user3', 'Bathroom', 'Shower')
-    #df = Write_power_usage(505000, "0", 'user2', 'Bathroom', 'Shower')
+    # df = Handel_power_usages("50", "1", 'Sun panel')
+    # df = Handel_power_usages("50", "2", 'user2', 'Livingroom')
+    # df = Handel_power_usages("50", "1", 'user3', 'Bathroom', 'Shower')
     
     print()
 

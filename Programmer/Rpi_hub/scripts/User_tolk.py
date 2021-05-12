@@ -2,7 +2,7 @@
 """
 Created on Tue May  4 15:14:57 2021
 
-@author: Gruppe 10
+@author: Gruppe 8
 """
 
 import pandas as pd 

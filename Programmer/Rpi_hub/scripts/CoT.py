@@ -23,9 +23,11 @@ def push_payload(key, value):
     
     
     if(response.status_code==200):
-        print("succsess")
+        #print("succsess")
+        return 1
     else:
         print("error %d" % (response.status_code))
+        return 0
 
 
 

@@ -128,6 +128,7 @@ def Push_power_consumption():
     if index_loop == 5: CoT.push_payload(31659, int(Power_usage.User_avreage("user5")))
     if index_loop == 6: CoT.push_payload(27141, int(Power_usage.User_avreage("user6")))
     if index_loop == 7:
+        print("Pushed to CoT")
         index_loop = 0
         loop_push_power = False
 

@@ -14,7 +14,7 @@ def get_temp():
         response = requests.get(url)
         weatherdata = json.loads(response.text)
     except Exception as e:
-        print("ERROR: " + str(e))
+        print("ERROR: ", e)
         return 0
 
 

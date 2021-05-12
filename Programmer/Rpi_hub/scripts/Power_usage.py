@@ -17,7 +17,7 @@ file = "Power_usage"
 def setup():
     
  # Set up the file, if it dosen't exsist 
-    if not os.path.exists(path + "/" + file + '.csv'):
+    if not os.path.exists(path + "/" + file + '.csv') or not os.path.exists(path + "/" + file + '.h5'):
         
         today = date.today().strftime("%d/%m/%Y")
         
@@ -59,6 +59,12 @@ def setup():
       # Create the file
         try:
             df.to_csv(path + "/" + file + '.csv')
+        except OSError as err:
+            print("OS error: {0}".format(err))
+            raise
+
+      # Create the file
+        try:
             df.to_hdf(path + "/" + file + '.h5', "df")
         except OSError as err:
             print("OS error: {0}".format(err))
@@ -70,7 +76,7 @@ def setup():
 def Write_power_usage(consumption, hour, ID, room="", booked=""):
     
   # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file + '.csv'):
+    if not os.path.exists(path + "/" + file + '.csv') or not os.path.exists(path + "/" + file + '.h5'):
         setup()
     
   # Get current date in (dd/mm/yy) 
@@ -105,7 +111,7 @@ def Write_power_usage(consumption, hour, ID, room="", booked=""):
 def Read_power_usage(hour, ID, room="", booked=""):
     
   # Create the folder and file if it does not exsist
-    if not os.path.exists(path + "/" + file + '.csv'):
+    if not os.path.exists(path + "/" + file + '.csv') or not os.path.exists(path + "/" + file + '.h5'):
         setup()
 
   # Get current date in (dd/mm/yy)

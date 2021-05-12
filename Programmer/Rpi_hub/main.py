@@ -22,6 +22,11 @@ loop_time_15min = time.time()
 index_loop = 0
 loop_push_power = False
 
+### Error checker ###
+seconds60 = 60
+numb_err = 0
+loop_error_60sec = time.time()
+
 
 class Header(enum.IntEnum):
     none = 0x00
@@ -128,7 +133,7 @@ def Push_power_consumption():
     if index_loop == 5: CoT.push_payload(31659, int(Power_usage.User_avreage("user5")))
     if index_loop == 6: CoT.push_payload(27141, int(Power_usage.User_avreage("user6")))
     if index_loop == 7:
-        print("Pushed to CoT")
+        print("Pushed to CoT", datetime.today())
         index_loop = 0
         loop_push_power = False
 
@@ -143,7 +148,7 @@ def on_message(client, userdata, message):
     try:
         payload = json.loads(message.payload)
     except ValueError as e:
-        print("ERROR: " + e)
+        print("ERROR: ", e)
         return
 
     # Handel payload to Hub
@@ -230,7 +235,7 @@ def job_every_15min():
 
 
 ###### Setup ######
-print("Startup: " + str(datetime.today()))
+print("Startup: ", datetime.today())
 
 User_tolk.setup()
 Power_usage.setup()
@@ -248,7 +253,6 @@ client.reconnect()
 print("subscribing ")
 client.subscribe(topic)
 time.sleep(1)
-
 
 # Loop
 while True:
@@ -276,13 +280,32 @@ while True:
         client.loop()
 
     except KeyboardInterrupt:
-        client.disconnect()
         break
     except Exception as e:
-        print("ERROR: ", e)
-        
-        print("Reconecting")
-        client.reconnect()
-        
-        print("subscribing ")
-        client.subscribe(topic)
+        # Reset number of erros if non has occurred last 60sec
+        elapsed_time = time.time() - loop_error_60sec
+
+        if elapsed_time > seconds60:
+            numb_err = 0
+
+        # Try to reset
+        if numb_err <= 5:
+            print("ERROR: ", e)
+
+            print("Reconecting")
+            client.reconnect()
+
+            print("subscribing ")
+            client.subscribe(topic)
+
+            numb_err += 1
+            loop_error_60sec = time.time()
+        # End program
+        else:
+            break
+
+# Run at ending program
+client.disconnect()
+
+print("Program ended", datetime.today())
+print("..................................................")

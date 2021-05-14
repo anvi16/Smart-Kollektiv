@@ -5,6 +5,9 @@ Version: v1.0	04/04/2021
 
 Description:
 		Communication handeler
+
+Resp & dev: 
+  Andreas Vik
 *************************************************/
 
 #ifndef MQTT_H

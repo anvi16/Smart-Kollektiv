@@ -98,7 +98,7 @@ bool        cot_operational         = LOW;                // Bool saying if the 
 
 // MQTT: ID, server IP, port, topics
 const char* MQTT_CLIENT_ID          = "RC";
-const char* MQTT_SERVER_IP          = "188.113.82.107";  //"broker.hivemq.com";
+const char* MQTT_SERVER_IP          = "188.113.82.107"; //"blueberrypie.is-very-sweet.org"; //;  //"broker.hivemq.com";
 const uint16_t  MQTT_SERVER_PORT    = 1883;
 
 // MQTT: Common topic for system

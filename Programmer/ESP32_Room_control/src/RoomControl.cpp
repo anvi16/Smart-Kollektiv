@@ -9,7 +9,7 @@ Version: v1.0	02/05/2021
 Description: 
   Room controller class
 
-Resp: 
+Resp & dev: 
   Jorgen Andreas Mo
 
 *************************************************/

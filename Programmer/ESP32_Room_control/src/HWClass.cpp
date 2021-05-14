@@ -3,7 +3,15 @@
 #include "HWClass.h"
 #include <Arduino.h>
 
+/*-----------------------------------------------------
 
+Creator:            Jorgen Andreas Mo
+Creation date:      05.05-2021
+Current version:    V0.0
+Update log:
+    - V0.0  - 05.05-2021
+
+------------------------------------------------------*/
 
 // Reads out the current button state. To be called in the start of every loop
 void Button::setState(bool state){

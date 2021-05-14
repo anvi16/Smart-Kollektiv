@@ -1,6 +1,22 @@
 #include "OLED.h"
 #include "Controller_config.h"
 
+
+/************************************************
+Prosjekt: Smart Kollektiv
+Created by: Group 8
+Version: v1.0	02/05/2021
+
+Description: 
+  Functions for drawing windows on display
+
+Resp & dev: 
+  Jorgen Andreas Mo
+
+*************************************************/
+
+
+
 // Function drawing a single menu icon. Must be called for all "buttons" in a menu
 void menu_icon(int item_number, int current_number, std::string item_name, int sel_color, int selected_number){
     TFT_eSPI tft_menu_icon = TFT_eSPI(); // Need to instanciate library to be able to modify text colours etc

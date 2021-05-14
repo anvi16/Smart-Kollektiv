@@ -5,6 +5,9 @@ Version: v1.0  04/04/2021
 
 Description:
 		Define Enum's og struct's 
+
+Resp & dev: 
+  Andreas Vik
 *************************************************/
 
 

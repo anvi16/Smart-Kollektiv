@@ -1,6 +1,21 @@
 #include <Arduino.h>
 #include "Controller_config.h"
 
+
+/************************************************
+Prosjekt: Smart Kollektiv
+Created by: Group 8
+Version: v1.0	02/05/2021
+
+Description: 
+  Controller Config
+
+Resp & dev: 
+  Jorgen Andreas Mo
+
+*************************************************/
+
+
 // Function for setting up hardware (pushbuttons, temp sensor, light sensor)
 void hw_setup(){
     // Pinmode for input pins

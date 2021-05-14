@@ -1,6 +1,19 @@
 #include <Controller_config.h>
 #include <math.h>
 
+/************************************************
+Prosjekt: Smart Kollektiv
+Created by: Group 8
+Version: v1.0	02/05/2021
+
+Description: 
+  Peripherals functions
+
+Resp & dev: 
+  Jorgen Andreas Mo
+
+*************************************************/
+
 
 int light_intensity_setpoint(int input_pin, int output_resolution){
     

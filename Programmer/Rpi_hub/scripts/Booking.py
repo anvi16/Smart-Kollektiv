@@ -306,6 +306,6 @@ def book_room(user, room):  # Receive booking requests
 
 
 def mqtt_publish(topic, payload):  # Function which publishes to a topic
-    k.publish(topic, payload, True)
+    k.publish(topic, payload, False)
 
 

@@ -48,7 +48,7 @@ const char* MQTT_CLIENT_ID = "speleman";
 const char* MQTT_SERVER_IP = "broker.hivemq.com";
 const uint16_t MQTT_SERVER_PORT = 1883;
 // Common topic for system
-const char* TOPIC = "which_room";
+const char* TOPIC = "My_home/mqtt";
 const char* TOPIC_BACK = "booked";
 const char* user = "user4";
 
@@ -221,10 +221,10 @@ void loop() {
   //void display_message(int displaytime_ms, char* line1, char* line2, char* line3)
   else if         (menu_adress[0] == 3)   {                                                   // 3
     if            (menu_adress[1] == 1)   {                                                     // 3.1   - Kitchen
-      if          (menu_adress[2] == 1)   {mqtt_message.resiver  = user;                     // 3.1.1 - Book kitchen
+      if          (menu_adress[2] == 1)   {mqtt_message.resiver  = "Hub";                     // 3.1.1 - Book kitchen
                                            mqtt_message.header   = Booking;
                                            mqtt_message.room     = Kitchen;
-                                           mqtt_message.data_int[0] = { "key", 10 };
+                                           mqtt_message.data_String[0] = { "user", user };
                                            mqtt.pub(mqtt_message, TOPIC, false);
                                            menu_lvl = 1;
                                            menu_adress[0] = 1;
@@ -236,10 +236,10 @@ void loop() {
       
       if         (menu_adress[2] == 1) {current_vector = book_bath_menu;}                        // 3.2.1 - Select whether you want to use toilet or shower
    
-      else if   (menu_adress[2] == 2) {mqtt_message.resiver  = user;                            // 3.2.2 - Cancel bathroom slot
+      else if   (menu_adress[2] == 2) {mqtt_message.resiver  = "Hub";                            // 3.2.2 - Cancel bathroom slot
                                        mqtt_message.header   = Booking;
                                        mqtt_message.room     = CanBath;
-                                       mqtt_message.data_int[0] = { "key1", 10 };
+                                       mqtt_message.data_String[0] = { "user", user };
                                        mqtt.pub(mqtt_message, TOPIC, false);
                                        menu_lvl = 1;
                                        menu_adress[0] = 1;
@@ -255,19 +255,19 @@ void loop() {
   else if         (menu_adress[0] == 4) {                                                     // 4
     if            (menu_adress[1] == 1) {                                                     // 4.1
       if          (menu_adress[2] == 2) {                                                     // 4.1.2
-        if        (menu_adress[3] == 1) {mqtt_message.resiver  = user;                       // 4.1.2.1 - Cancel kitchen slot 1
+        if        (menu_adress[3] == 1) {mqtt_message.resiver  = "Hub";                       // 4.1.2.1 - Cancel kitchen slot 1
                                          mqtt_message.header   = Booking;
                                          mqtt_message.room     = CanKit1;
-                                         mqtt_message.data_int[0] = { "key2", 10 };
+                                         mqtt_message.data_String[0] = { "user", user };
                                          mqtt.pub(mqtt_message, TOPIC, false);
                                          menu_lvl = 1;
                                          menu_adress[0] = 1;
                                          current_lvl_val = 1;}
 
-        else if     (menu_adress[3] == 2) {mqtt_message.resiver  = user;                       // 4.1.2.2 - Cancel kitchen slot 2
+        else if     (menu_adress[3] == 2) {mqtt_message.resiver  = "Hub";                       // 4.1.2.2 - Cancel kitchen slot 2
                                           mqtt_message.header   = Booking;
                                           mqtt_message.room     = CanKit2;
-                                          mqtt_message.data_int[0] = { "key3", 10 };
+                                          mqtt_message.data_String[0] = { "user", user };
                                           mqtt.pub(mqtt_message, TOPIC, false);
                                           menu_lvl = 1;
                                           menu_adress[0] = 1;
@@ -275,19 +275,19 @@ void loop() {
 
       else if      (menu_adress[1] == 2) {                                                      // 4.2 - Bathroom choice
         if         (menu_adress[2] == 1) {                                                      // 4.2.1
-          if       (menu_adress[3] == 1) {mqtt_message.resiver  = user;                        // 4.2.1.1 - Book toilet
+          if       (menu_adress[3] == 1) {mqtt_message.resiver  = "Hub";                        // 4.2.1.1 - Book toilet
                                           mqtt_message.header   = Booking;
                                           mqtt_message.room     = Toilet;
-                                          mqtt_message.data_int[0] = { "key4", 10 };
+                                          mqtt_message.data_String[0] = { "user", user };
                                           mqtt.pub(mqtt_message, TOPIC, false);
                                           menu_lvl = 1;
                                           menu_adress[0] = 1;
                                           current_lvl_val = 1;}
                                           
-          else if  (menu_adress[3] == 2) {mqtt_message.resiver  = user;                        // 4.2.1.2 - Boomk shower
+          else if  (menu_adress[3] == 2) {mqtt_message.resiver  = "Hub";                        // 4.2.1.2 - Boomk shower
                                           mqtt_message.header   = Booking;
                                           mqtt_message.room     = Shower;
-                                          mqtt_message.data_int[0] = { "key5", 10 };
+                                          mqtt_message.data_String[0] = { "user", user };
                                           mqtt.pub(mqtt_message, TOPIC, false);;
                                           menu_lvl = 1;
                                           menu_adress[0] = 1;
@@ -296,10 +296,10 @@ void loop() {
         
       else if     (menu_adress[1] == 3) {                                                       // 4.3 - Livingroom choice
         if        (menu_adress[2] == 1) {                                                       // 4.3.1.
-          if      (menu_adress[3] == 1) {mqtt_message.resiver  = user;                         // 4.3.1.1 - Book livingroom for 30 minutes
+          if      (menu_adress[3] == 1) {mqtt_message.resiver  = "Hub";                         // 4.3.1.1 - Book livingroom for 30 minutes
                                          mqtt_message.header   = Booking;
                                          mqtt_message.room     = Liv30;
-                                         mqtt_message.data_int[0] = { "key6", 10 };
+                                         mqtt_message.data_String[0] = { "user", user };
                                          mqtt.pub(mqtt_message, TOPIC, false);
                                          menu_lvl = 1;
                                          menu_adress[0] = 1;
@@ -307,19 +307,19 @@ void loop() {
                                    
                                         
 
-          else if   (menu_adress[3] == 2) {mqtt_message.resiver  = user;                         // 4.3.1.2 - Book livingroom for 60 minutes
+          else if   (menu_adress[3] == 2) {mqtt_message.resiver  = "Hub";                         // 4.3.1.2 - Book livingroom for 60 minutes
                                            mqtt_message.header   = Booking;
                                            mqtt_message.room     = Liv60;
-                                           mqtt_message.data_int[0] = { "key7", 10 };
+                                           mqtt_message.data_String[0] = { "user", user };
                                            mqtt.pub(mqtt_message, TOPIC, false);;
                                            menu_lvl = 1;
                                            menu_adress[0] = 1;
                                            current_lvl_val = 2;}
                                             
-          else if   (menu_adress[3] == 3) {mqtt_message.resiver  = user;                          // 4.3.1.3 - Book livingroom for 90 minutes
+          else if   (menu_adress[3] == 3) {mqtt_message.resiver  = "Hub";                          // 4.3.1.3 - Book livingroom for 90 minutes
                                            mqtt_message.header   = Booking;
                                            mqtt_message.room     = Liv120;
-                                           mqtt_message.data_int[0] = { "key8", 10 };
+                                           mqtt_message.data_String[0] = { "user", user };
                                            mqtt.pub(mqtt_message, TOPIC, false);
                                            menu_lvl = 1;
                                            menu_adress[0] = 1;
@@ -327,28 +327,28 @@ void loop() {
                                                       
         else if     (menu_adress[2] == 2) {                                                        // 4.3.2 - Cancel livingroom slots
 
-          if        (menu_adress[3] == 1) {mqtt_message.resiver  = user;                          // 4.3.2.1 - cancel livingroom slot 1
+          if        (menu_adress[3] == 1) {mqtt_message.resiver  = "Hub";                          // 4.3.2.1 - cancel livingroom slot 1
                                            mqtt_message.header   = Booking;
                                            mqtt_message.room     = CanLiv1;
-                                           mqtt_message.data_int[0] = { "key9", 10 };
+                                           mqtt_message.data_String[0] = { "user", user };
                                            mqtt.pub(mqtt_message, TOPIC, false);
                                            menu_lvl = 1;
                                            menu_adress[0] = 1;
                                            current_lvl_val = 1;}
 
-          else if   (menu_adress[3] == 2) {mqtt_message.resiver  = user;                           // 4.3.2.2 - cancel livingroom slot 2
+          else if   (menu_adress[3] == 2) {mqtt_message.resiver  = "Hub";                           // 4.3.2.2 - cancel livingroom slot 2
                                            mqtt_message.header   = Booking;
                                            mqtt_message.room     = CanLiv2;
-                                           mqtt_message.data_int[0] = { "key10", 10 };
+                                           mqtt_message.data_String[0] = { "user", user };
                                            mqtt.pub(mqtt_message, TOPIC, false);
                                            menu_lvl = 1;
                                            menu_adress[0] = 1;
                                            current_lvl_val = 2;}
                                                 
-          else if   (menu_adress[3] == 3) {mqtt_message.resiver  = user;                            // 4.3.2.3 - cancel livingroom slot 3
+          else if   (menu_adress[3] == 3) {mqtt_message.resiver  = "Hub";                            // 4.3.2.3 - cancel livingroom slot 3
                                            mqtt_message.header   = Booking;
                                            mqtt_message.room     = CanLiv3;
-                                           mqtt_message.data_int[0] = { "key11", 10 };
+                                           mqtt_message.data_String[0] = { "user", user };
                                            mqtt.pub(mqtt_message, TOPIC, false);
                                            menu_lvl = 1;
                                            menu_adress[0] = 1;

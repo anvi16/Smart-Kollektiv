@@ -131,7 +131,7 @@ void MQTT::reconnect() {
             strcpy(buffer, MQTT_CLIENT_ID);
             strcat(buffer, text);
 
-            client.publish(TOPIC, buffer);
+            //client.publish(TOPIC, buffer);
             // ... and resubscribe
             client.subscribe(TOPIC_BACK);
 

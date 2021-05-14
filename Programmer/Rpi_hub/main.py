@@ -7,6 +7,7 @@ from scripts import User_tolk
 from scripts import Power_usage
 from scripts import Openweathermap as Weather
 from scripts import CoT
+from scripts import Booking
 
 ###### Declare variables ######
 id_mqtt = "Hub"
@@ -225,6 +226,15 @@ def on_message(client, userdata, message):
                 Access_panel_store(payload["data_String"]["user"], payload["data_String"]["type_tolk"],
                                    payload["data_String"]["tolk"])
 
+        ###### Handel booking messages ######
+        if payload["header"] == Header.Booking:
+            user = payload["data_String"]["user"]
+            room = payload["room"]
+
+            print("booking resived")
+            Booking.book_room(user, room)
+
+
 
 def job_every_1s():
     Outdoor_temp_send(Weather.get_temp())
@@ -237,12 +247,14 @@ def job_every_15min():
 ###### Setup ######
 print("Startup: ", datetime.today())
 
+client = paho.Client()
+
 User_tolk.setup()
 Power_usage.setup()
+Booking.setup(client)
+
 
 ############## MQTT #################
-
-client = paho.Client()
 
 client.on_message = on_message
 
@@ -250,7 +262,7 @@ print("connecting to broker ", broker)
 client.connect(broker)
 
 client.reconnect()
-print("subscribing ")
+print("subscribing to " + topic)
 client.subscribe(topic)
 time.sleep(1)
 
@@ -282,7 +294,7 @@ while True:
     except KeyboardInterrupt:
         break
     except Exception as e:
-        # Reset number of erros if non has occurred last 60sec
+        # Reset number of errors if non has occurred last 60sec
         elapsed_time = time.time() - loop_error_60sec
 
         if elapsed_time > seconds60:
@@ -295,7 +307,7 @@ while True:
             print("Reconecting")
             client.reconnect()
 
-            print("subscribing ")
+            print("subscribing to", topic)
             client.subscribe(topic)
 
             numb_err += 1

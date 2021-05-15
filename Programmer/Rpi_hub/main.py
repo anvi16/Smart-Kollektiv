@@ -71,10 +71,10 @@ def Access_panel_push(cards, codes):
     user_codes = []
 
     for ID in range(users):
-        user_cards.append(User_tolk.get_card_id("user" + str(ID + 1)))
+        user_cards.append(str(User_tolk.get_card_id("user" + str(ID + 1))))
 
     for ID in range(users):
-        user_codes.append(User_tolk.get_code("user" + str(ID + 1)))
+        user_codes.append(str(User_tolk.get_code("user" + str(ID + 1))))
 
     message = {
         "id": "Access_panel",
@@ -300,8 +300,8 @@ while True:
         if elapsed_time > seconds60:
             numb_err = 0
 
-        # Try to reset
-        if numb_err <= 5:
+        # Try to reset, 10 times max
+        if numb_err < 10:
             print("ERROR: ", e)
 
             print("Reconecting")

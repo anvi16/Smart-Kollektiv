@@ -14,7 +14,7 @@ Description:
 #include <Arduino.h>
 #include <SPI.h>
 
-//#define DEBUG // define for debug
+#define DEBUG // define for debug
 
 /////// I/O define pins ///////
 // Number of users

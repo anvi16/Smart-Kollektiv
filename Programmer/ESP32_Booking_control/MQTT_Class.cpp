@@ -133,6 +133,7 @@ void MQTT::reconnect() {
 
             //client.publish(TOPIC, buffer);
             // ... and resubscribe
+            client.subscribe(TOPIC);
             client.subscribe(TOPIC_BACK);
 
         }

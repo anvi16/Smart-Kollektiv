@@ -1,12 +1,5 @@
 #include "OLED.h"
-#include <iostream>
-#include <stdlib.h>
-#include <SPI.h>
-#include <TFT_eSPI.h>
-#include <TimeLib.h>
 
-
-//#include "Controller_config.h"
 
 // Function drawing a single menu icon. Must be called for all "buttons" in a menu
 void menu_icon(int item_number, int current_number, std::string item_name, int sel_color, int selected_number){
@@ -253,8 +246,38 @@ void display_weekplan_setting(int level_val, int sel_icon, std::vector<std::stri
     menu_icon(i+1, level_val, item_vector[i],TFT_BLUE, sel_icon);  
   };
   tft_display_weekplan_mode.fillTriangle(5,123, 5,117, 15,120, TFT_SKYBLUE);
-
 }
+
+TFT_eSPI tft = TFT_eSPI();
+
+void display_text_clear(const char* text, int x, int y, uint8_t text_size, uint8_t color) {
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextSize(text_size);
+    tft.setTextColor(color);
+    tft.drawString(text, x ,y);
+    tft.drawRoundRect(rect_in, cntr_x - (180 / 2), rect_w, 180, 10, TFT_SKYBLUE);
+}
+
+void display_text(const char* text, int x, int y, uint8_t text_size, uint8_t color) {
+    tft.setTextSize(text_size);
+    tft.setTextColor(color);
+    tft.drawString(text, x, y);
+}
+
+
+void display_line(int x, int y, int length, int rot, uint8_t color) {
+    tft.setCursor(x, y);
+    for (int i = 0; i < length; i++) {
+        if (rot) tft.drawPixel(x, y + i, color); // Vertical
+        else tft.drawPixel(x + i, y, color);    // Horizontal
+    }
+}
+
+
+void display_clear() {
+    tft.fillScreen(TFT_BLACK);
+}
+
 
   
   /*

@@ -49,7 +49,7 @@ bool disply_off;
 
 
 uint8_t index_user_array = 0;
-String user_names[user_array_length] = { "Ole", "Lise", "Kari", "Henrik", "Karro", "Simen" };
+String user_names[user_array_length] = { "Ole", "Lise", "Kari", "Henrik", "Karro", "Fredrik" }; // using names to show support for different name length
 
 
 Mqtt_message doorbell_message;
@@ -194,6 +194,8 @@ void Doorbell_show() {
     for (int i = 0; i < 6; i++) {
         display.setCursor(16, i * 17 + 2);
         display.println(user_names[i]);
+        display.setCursor(110, i * 17 + 2);
+        display.println(i + 1);
     }
     display.display();
 
@@ -225,6 +227,8 @@ void Doorbell_scorll() {
     for (int i = 0; i < 6 - index_user_array; i++) {
         display.setCursor(16, i * 17 + 2);
         display.println(user_names[i + index_user_array]);
+        display.setCursor(110, i * 17 + 2);
+        display.println((i + 1) + index_user_array);
     }
     display.display();
 }
@@ -232,11 +236,14 @@ void Doorbell_scorll() {
 
 
 void Doorbell_send(String user) {
-    doorbell_message.resiver = user.c_str();
-    doorbell_message.room = Entry;
-    doorbell_message.header = Doorbell;
+    String name = "user";
+    user = name + (String)(index_user_array + 1); // eks "user1"  Overwrite user until there is function to set usernames system wide
 
-    mqtt_doorbell->pub(doorbell_message, MQTT_TOPIC, false);
+    doorbell_message.resiver = user.c_str();
+    doorbell_message.room    = Entry;
+    doorbell_message.header  = Doorbell;
+
+    mqtt_doorbell->pub(doorbell_message);
 }
 
 

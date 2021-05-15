@@ -1,12 +1,11 @@
-//#ifndef OLED.h
-//#define OLED.h
+#ifndef OLED.H
+#define OLED.H
+
 #include <iostream>
 #include <stdlib.h>
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <TimeLib.h>
-
-//#include <Controller_config.h>
 
 #define TFT_GREY 0x5AEB
 
@@ -30,4 +29,10 @@ void display_reconnecting_screen();                         // Function for disp
 void display_setup_messages(const char*, const char*, const char*);  // Function for displaying setup screen with custom text
 void display_screensaver(int, const char*, int, int);                 // Function for displaying screensaver
 void display_weekplan_setting(int, int, std::vector<std::string>);
-//#endif
+void display_text_clear(const char* text, int x = 0, int y = 0, uint8_t text_size = 1, uint8_t color = TFT_SKYBLUE);
+void display_text(const char* text, int x = 0, int y = 0, uint8_t text_size = 1, uint8_t color = TFT_SKYBLUE);
+void display_line(int x = 0, int y = 0, int length = 10, int rot = 0, uint8_t color = TFT_SKYBLUE); 
+void display_clear();
+
+
+#endif

@@ -69,12 +69,7 @@ livingroom = {
 kit_time1, kit_time2, bath_time, liv_time1, liv_time2, liv_time3 = 0, 0, 0, 0, 0, 0
 previous_value = 0
 
-#rem_bath_1, rem_bath_2 = 100*60000, 100*60000 
-# Assigns unatural high value to be sure the remaing time inside the bathroom function always will be lower
-
 df = pd.DataFrame()
-
-
 
 
 def kitchen_status(room, time, user):     # Function for kitchen booking
@@ -128,8 +123,8 @@ def kitchen_status(room, time, user):     # Function for kitchen booking
             
         return kitchen      # Rreturns value for kitchen
         
-def bathroom_status(room, time, user):                               # Function for bathroom booking
-    global bath_time       # Defining global variable                  
+def bathroom_status(room, time, user):                   # Function for bathroom booking
+    global bath_time                                     # Defining global variable                  
     if room == 'Toilet':                                 # Checks if message asks to book the toilet
         if current_milli_time() >= bath_time + time:    
             bathroom['slot'] = 'free'
@@ -144,22 +139,19 @@ def bathroom_status(room, time, user):                               # Function 
             
         
         else:
-            ba_1 = bath_time + time  # Sets the time when the bathroom time has run out
-            rem_bath_1 = ba_1 - current_milli_time() # Remaing time in millis before slot time has run out
-            ba_2 = bath_time + time                 # Sets the time when the bathroom time has run out
+            ba_1 = bath_time + time                     # Sets the time when the bathroom time has run out
+            rem_bath_1 = ba_1 - current_milli_time()    # Remaing time in millis before slot time has run out
+            ba_2 = bath_time + time                     # Sets the time when the bathroom time has run out
             rem_bath_2 = ba_2 - current_milli_time()
         
             if rem_bath_1 <= rem_bath_2:
                 mqtt_publish('booked', 'The bathroom is full, it will be free in ' + str(round(rem_bath_1/60000, 0)) + ' minutes')
             elif rem_bath_1 >= rem_bath_2:
-                mqtt_publish('booked', 'The bathroom is full, it will be free in ' + str(round(rem_bath_2/60000, 0)) + ' minutes')
-    
-        
+                mqtt_publish('booked', 'The bathroom is full, it will be free in ' + str(round(rem_bath_2/60000, 0)) + ' minutes')   
                 # Publishes message to mqtt on how long time remains before the slot is free
             
             
-            
-    elif room == 'Shower':          # Checks if message asks to book the shower
+    elif room == 'Shower':                          # Checks if message asks to book the shower
         if current_milli_time() >= bath_time + time:
             bathroom['slot'] = 'free'
             # Checks if the current time is greater or equal to the slot time given for bathroom
@@ -172,9 +164,9 @@ def bathroom_status(room, time, user):                               # Function 
             
         
         else:
-            ba_1 = bath_time + time  # Sets the time when the bathroom time has run out
+            ba_1 = bath_time + time                     # Sets the time when the bathroom time has run out
             rem_bath_1 = ba_1 - current_milli_time()
-            ba_2 = bath_time + time                 # Sets the time when the bathroom time has run out
+            ba_2 = bath_time + time                     # Sets the time when the bathroom time has run out
             rem_bath_2 = ba_2 - current_milli_time()    # Remaing time in millis before slot time has run out
             
             if rem_bath_1 <= rem_bath_2:
@@ -185,14 +177,14 @@ def bathroom_status(room, time, user):                               # Function 
         
         
     
-    elif room == 'Cancel bathroom':
-        bathroom['slot'] = 'free'
-        mqtt_publish('booked', 'You have canceled your slot')
+    elif room == 'Cancel bathroom':                             # Checks if user wants to cancel bathroom slot
+        bathroom['slot'] = 'free'                               # Sets bathroom status to free
+        mqtt_publish('booked', 'You have canceled your slot')   #Publish message to mqtt
                                 
             
         return bathroom
     
-def livingroom_status(room, time, user):              # Function for livingroom booking
+def livingroom_status(room, time, user):        # Function for livingroom booking
     global liv_time1, liv_time2, liv_time3      # Defining global variables
     if room == 'Livingroom':                    # Checks if subscribed value is Livingroom
         
@@ -264,27 +256,27 @@ def book_room(user, room):  # Receive booking requests
 
     if (room == Room.Kitchen):
         time = 30 * 60000  # Sets time for kitchen
-        kitchen = kitchen_status('Kitchen', time, user)  # Checks if message is kitchen, then runs kitchen function
+        kitchen = kitchen_status('Kitchen', time, user)     # Checks if message is kitchen, then runs kitchen function
 
     elif (room == Room.Toilet):
         time = 5 * 60000  # Sets time for use of toilet
-        bathroom = bathroom_status('Toilet', time, user)  # calls bathroom function
+        bathroom = bathroom_status('Toilet', time, user)    # Calls bathroom function
 
     elif (room == Room.Shower):
-        time = 15 * 60000
-        bathroom = bathroom_status('Shower', time, user)
+        time = 15 * 60000   # Sets time for use of shower
+        bathroom = bathroom_status('Shower', time, user)    # Calls bathroom function
 
     elif (room == Room.Liv30):
-        time = 30 * 60000
-        livingroom = livingroom_status('Livingroom', time, user)
+        time = 30 * 60000   # Sets livingroom time to 30 minutes
+        livingroom = livingroom_status('Livingroom', time, user)    # Calls livingroom function
 
     elif (room == Room.Liv60):
-        time = 60 * 60000
-        livingroom = livingroom_status('Livingroom', time, user)
+        time = 60 * 60000   # Sets livingroom time to 60 minutes
+        livingroom = livingroom_status('Livingroom', time, user)    # Calls livingroom function
 
     elif (room == Room.Liv120):
-        time = 120 * 60000
-        livingroom = livingroom_status('Livingroom', time, user)
+        time = 120 * 60000  # Sets livingroom time to 120 minutes
+        livingroom = livingroom_status('Livingroom', time, user)    # Calls livingroom function
 
     elif (room == Room.CanKit1):
         kitchen = kitchen_status('Cancel kit slot1', 0, "")

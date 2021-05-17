@@ -1,6 +1,17 @@
-Prosjekt Smart Kollektiv
+IELET1002
+Prosjektoppgave våren 2021 - Smart Kollektiv
+Gruppe 8
+ - Jørgen Andreas Mo
+ - Magnus Dag Oseid
+ - Albertin Rafuna
+ - Andreas Vik
+ - Jonathan Haugen Tønnesen
+ - Sebastian Gjerde Speleman
+
 
 All utviklet programkode for prosjektet ligger under mappen "Programmer"
+
+
 Endelig rapport ligger under mappen "Rapport"
 
 

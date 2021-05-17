@@ -9,6 +9,10 @@ Gruppe 8
  - Sebastian Gjerde Speleman
 
 
+Oppdatert versjon ligger til enhver tid tilgjengelig på Github:
+ - https://github.com/anvi16/Smart-Kollektiv
+
+
 All utviklet programkode for prosjektet ligger under mappen "Programmer"
 
 
